@@ -7,32 +7,7 @@
 .admin-box button{width:100%;padding:12px;font-size:16px}
 .admin-error{color:#ff8297;min-height:20px}
 </style>
-<script>
-(function(){
- const ADMIN_PASSWORD="qwerty123123";
- document.addEventListener("DOMContentLoaded",()=>{
-   const lock=document.createElement("div");
-   lock.className="admin-lock";
-   lock.innerHTML=`<div class="admin-box">
-   <h2>NOCTURNE Admin</h2>
-   <p class="muted">Введите пароль администратора</p>
-   <input id="adminPass" type="password" placeholder="Пароль">
-   <button id="adminLogin">Войти</button>
-   <div class="admin-error" id="adminError"></div>
-   </div>`;
-   document.body.appendChild(lock);
-   document.getElementById("adminLogin").onclick=()=>{
-     let val=document.getElementById("adminPass").value;
-     if(val===ADMIN_PASSWORD){
-       closeAdminLock(lock);
-     }else{
-       document.getElementById("adminError").textContent="Неверный пароль";
-       document.getElementById("adminPass").value="";
-     }
-   };
- });
-})();
-</script>
+
 <style>
 :root{color-scheme:dark}body{background:#090911;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;color:#e8dff3}main{max-width:1180px;padding:35px 24px}.panel{background:#12101d;border-color:#35293f;border-radius:13px;overflow:auto}input,select{background:#0b0912;border-color:#4a335d}button{background:#8457b9;border-color:#a575d344}button:hover{filter:brightness(1.12)}h1{color:#ceb3ef;letter-spacing:-1px}.admin-box{background:radial-gradient(ellipse at top,#43255466,transparent),#14101f;border-color:#674180;box-shadow:0 30px 100px #0009;width:min(360px,calc(100vw - 50px))}.admin-box button{background:#8756c2}.admin-notice{border:1px solid #614772;border-radius:10px;padding:14px 18px;background:#281930;font-size:12px;line-height:1.8;color:#c1a7d4;margin-bottom:25px}.admin-notice a{color:#e4c9ff}.admin-notice strong{color:#e9c9ff}th,td{font-size:12px;border-color:#37283f}table{min-width:600px}.muted{color:#9b86aa}@media(max-width:600px){main{padding:20px 12px}.server-panel{flex-direction:column;align-items:start}.panel{padding:15px}h1{font-size:27px}}button:focus-visible,a:focus-visible{outline:2px solid #c79bef;outline-offset:3px}
 </style><style>.role-badge,.chat-msg .role-badge{display:inline-flex;align-items:center;gap:5px;flex-shrink:0;width:max-content;max-width:100%;margin:0;padding:3px 8px;border-radius:6px;border:1px solid var(--role-line,#775397);background:var(--role-bg,#322043);color:var(--role-text,#d3b0ff);font-size:10px;font-weight:600;line-height:1.4;letter-spacing:.01em;vertical-align:middle}.role-cosmic{--role-line:#8057b16b;--role-bg:#51317145;--role-text:#d1acff}.role-shadow{--role-line:#7383a05c;--role-bg:#28334599;--role-text:#bccce6}.role-legend{--role-line:#a079446b;--role-bg:#61491e45;--role-text:#f2cc84}.role-badge .role-symbol,.chat-msg .role-badge .role-symbol{display:inline;margin:0;font-size:12px;color:inherit;line-height:1}.chat-msg-header{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.chat-msg-header time{margin-left:auto;color:#72677e;font-size:9px;font-variant-numeric:tabular-nums}.chat-msg .chat-message-text{display:block;line-height:1.7;color:#d4c6df;margin-top:7px;white-space:pre-wrap}.role-section-heading{display:flex;gap:12px;align-items:start;justify-content:space-between;margin-bottom:17px}.role-section-heading h2{margin-bottom:5px}.role-section-heading p{font-size:11px;color:#9c8ba8;line-height:1.6;margin:0}.role-count{font-size:10px;color:#a88dbd;border:1px solid #4b345b;border-radius:6px;padding:3px 7px;white-space:nowrap}.wardrobe{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:27px}.wardrobe-item{background:radial-gradient(ellipse at 50% 0,var(--role-bg),transparent 80%),#15111e;border:1px solid #372c41;border-radius:12px;padding:17px;position:relative;transition:border-color .25s,background .25s}.wardrobe-item.equipped{border-color:var(--role-line);box-shadow:inset 0 0 0 1px var(--role-bg)}.wardrobe-icon{width:38px;height:38px;border:1px solid var(--role-line);background:var(--role-bg);color:var(--role-text);border-radius:10px;font-size:24px;display:grid;place-items:center;margin-bottom:14px}.wardrobe-item .role-badge{font-size:10px}.wardrobe-description{color:#95839f;font-size:10px;line-height:1.7;margin:9px 0 16px!important;min-height:34px}.wardrobe-status{font-size:8px;position:absolute;right:12px;top:16px;letter-spacing:.08em;text-transform:uppercase;color:#786b83}.equipped .wardrobe-status{color:var(--role-text)}.wardrobe-toggle{width:100%;min-height:36px;padding:8px 10px;border:1px solid #7451935c;border-radius:7px;background:#53317070;color:#d9b9f3;font-size:11px;transition:background .2s,border-color .2s}.wardrobe-toggle:hover{background:#624078}.equipped .wardrobe-toggle{background:transparent;border-color:var(--role-line);color:var(--role-text)}.role-empty{padding:20px;border:1px dashed #493156;border-radius:10px;color:#9b85ad;font-size:12px;line-height:1.8;margin-bottom:22px}.role-empty button{margin-top:10px;display:block;padding:0;color:#c29be9;font-size:12px}.chat-identity{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:12px;border:1px solid #33283d;border-radius:9px;background:#15101e;margin:18px 0 4px;font-size:11px;color:#9d89af}.chat-identity strong{font-weight:500;color:#dbcae7;overflow-wrap:anywhere}.chat-identity .role-manage{margin-left:auto;padding:4px;color:#b895d8;font-size:10px}.chat-identity .role-none{color:#83728f;font-size:10px}.admin-chat-message{padding:13px 0;border-bottom:1px solid #34253f;overflow-wrap:anywhere}.admin-chat-message p{color:#c1aecf;line-height:1.7;margin:7px 0 0;font-size:12px;white-space:pre-wrap}.admin-chat-message .chat-msg-header b{font-size:12px;color:#d4b7ed}@media(max-width:700px){.wardrobe{grid-template-columns:1fr}.wardrobe-item{display:grid;grid-template-columns:42px 1fr;column-gap:12px;padding:15px}.wardrobe-icon{grid-row:span 2;margin:0}.wardrobe-item>.role-badge{align-self:center;max-width:calc(100% - 55px)}.wardrobe-description{min-height:0;margin:5px 0 12px!important;grid-column:2;font-size:10px}.wardrobe-toggle{grid-column:1/-1}.wardrobe-status{top:23px;font-size:7px}.role-section-heading p{font-size:10px}.chat-identity .role-manage{margin-left:0}.chat-msg-header{gap:6px}.chat-msg-header time{font-size:8px}.role-badge,.chat-msg .role-badge{font-size:9px}}
@@ -163,7 +138,7 @@ button:active{transform:translateY(1px)}
 .admin-notice{line-height:1.75}
 @media(max-width:600px){main{padding:18px 12px}main>h1{font-size:25px}.panel{border-radius:12px}.players-heading{align-items:flex-start}}
 @media(prefers-reduced-motion:reduce){.panel,tbody tr,button{transition:none!important}.panel:hover,button:active{transform:none}}
-</style></head><body><main><div class="admin-notice"><strong>NOCTURNE · локальная демо-панель</strong><br>Данные доступны только в этом браузере. Пароль в HTML не защищает админ-панель. Не размещайте её в открытом доступе и не используйте для реальных платежей. <a href="index.html">Вернуться на сайт →</a></div><h1>NOCTURNE · Админ-панель</h1><div id="server-panel" class="panel server-panel"><div class="server-state"><span class="dot"></span><div><h2 id="server-title" style="margin:0">Сервер включён</h2><p id="server-hint" class="server-hint">Покупки и скачивание лаунчера доступны</p></div></div><button id="server-toggle" onclick="toggleServer()">Отключить сервер</button></div><div class="panel">
+</style><link rel="stylesheet" href="staff-access.css"></head><body><main><div class="admin-notice"><strong>NOCTURNE · локальная демо-панель</strong><br>Данные и ключи сотрудников доступны только в этом браузере. Пароль владельца находится в коде, права проверяются в браузере — это демо, а не настоящая защита. Не размещайте панель в открытом доступе и не используйте для реальных платежей. <a href="index.html">Вернуться на сайт →</a></div><h1>NOCTURNE · Админ-панель</h1><div id="server-panel" class="panel server-panel" data-staff-perm="server.manage"><div class="server-state"><span class="dot"></span><div><h2 id="server-title" style="margin:0">Сервер включён</h2><p id="server-hint" class="server-hint">Покупки и скачивание лаунчера доступны</p></div></div><button id="server-toggle" onclick="toggleServer()">Отключить сервер</button></div><div class="panel" data-staff-perm="players.view">
   <div class="players-heading">
     <h2>Игроки <span id="players-total">…</span></h2>
     <div style="display:flex;gap:8px">
@@ -225,7 +200,7 @@ button:active{transform:translateY(1px)}
   </table>
 </div>
 
-<div class="panel emergency-panel">
+<div class="panel emergency-panel" data-staff-perm="subs.mass">
   <div class="players-heading">
     <div>
       <h2 style="margin:0;display:flex;align-items:center;gap:8px">
@@ -311,7 +286,7 @@ button:active{transform:translateY(1px)}
       </div>
     </div>
   </div>
-</div><div class="panel"><h2>Генерация ключа</h2><div class="actions"><input id="key-name" type="text" maxlength="48" placeholder="Название ключа (например, Заказ #1042)" aria-label="Название ключа" style="min-width:min(280px,100%)"><select id="days"><option value="7">7 дней — 59 ₽</option><option value="14">14 дней — 100 ₽</option><option value="30">30 дней — 200 ₽</option><option value="90">90 дней — 500 ₽</option><option value="180">180 дней — 800 ₽</option><option value="0">Сброс HWID — 99 ₽</option></select><button onclick="generateKey()">Сгенерировать</button></div><p id="generated" class="muted"></p></div><div class="panel">
+</div><div class="panel" data-staff-perm="keys.generate"><h2>Генерация ключа</h2><div class="actions"><input id="key-name" type="text" maxlength="48" placeholder="Название ключа (например, Заказ #1042)" aria-label="Название ключа" style="min-width:min(280px,100%)"><select id="days"><option value="7">7 дней — 59 ₽</option><option value="14">14 дней — 100 ₽</option><option value="30">30 дней — 200 ₽</option><option value="90">90 дней — 500 ₽</option><option value="180">180 дней — 800 ₽</option><option value="0">Сброс HWID — 99 ₽</option></select><button onclick="generateKey()">Сгенерировать</button></div><p id="generated" class="muted"></p></div><div class="panel" data-staff-perm="keys.view">
   <div class="players-heading">
     <h2>Сгенерированные ключи <span id="keys-total" class="role-count">0</span></h2>
     <div style="display:flex;gap:8px">
@@ -334,7 +309,7 @@ button:active{transform:translateY(1px)}
       </tbody>
     </table>
   </div>
-</div><div class="panel promo-panel">
+</div><div class="panel promo-panel" data-staff-perm="promos.manage">
   <div class="promo-heading">
     <div>
       <h2 style="margin:0">Генерация промокодов</h2>
@@ -419,7 +394,7 @@ button:active{transform:translateY(1px)}
     </table>
   </div>
 </div>
-<div class="panel audit-panel" style="margin-top:20px">
+<div class="panel audit-panel" style="margin-top:20px" data-staff-perm="logs.view">
   <div class="players-heading">
     <div>
       <h2 style="margin:0">Журнал действий администратора (Audit Log)</h2>
@@ -434,14 +409,15 @@ button:active{transform:translateY(1px)}
     <table>
       <thead>
         <tr>
-          <th style="width:160px">Время</th>
+          <th style="width:140px">Время</th>
+          <th style="width:150px">Кто</th>
           <th style="width:170px">Операция</th>
           <th>Подробности</th>
           <th style="width:110px">Статус</th>
         </tr>
       </thead>
       <tbody id="audit-log-body">
-        <tr><td colspan="4" class="muted">Журнал пуст</td></tr>
+        <tr><td colspan="5" class="muted">Журнал пуст</td></tr>
       </tbody>
     </table>
   </div>
@@ -521,8 +497,10 @@ function logAdminAction(action, details, status = 'Успешно') {
   const logs = getAdminLogs();
   const d = new Date();
   const timeStr = d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ' ' + d.toLocaleDateString('ru-RU');
+  const actor = typeof staffCurrentActor === 'function' ? staffCurrentActor() : 'Владелец';
   logs.unshift({
     time: timeStr,
+    actor: String(actor),
     action: String(action),
     details: String(details),
     status: String(status),
@@ -546,11 +524,12 @@ function renderAdminLogs() {
   const countBadge = document.getElementById('log-count-badge');
   if (countBadge) countBadge.textContent = `${logs.length} записей`;
   if (!logs.length) {
-    body.innerHTML = '<tr><td colspan="4" class="muted">Журнал действий пуст</td></tr>';
+    body.innerHTML = '<tr><td colspan="5" class="muted">Журнал действий пуст</td></tr>';
     return;
   }
   body.innerHTML = logs.slice(0, 60).map(l => `<tr>
     <td style="font-family:monospace;font-size:11px;color:#ba9cd9">${esc(l.time)}</td>
+    <td style="font-size:11px;color:#c9b3da">${esc(l.actor || '—')}</td>
     <td><b>${esc(l.action)}</b></td>
     <td style="font-size:12px;color:#d5c2ea">${esc(l.details)}</td>
     <td><span style="display:inline-block;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:600;background:#1e4736;color:#7ee6bb">${esc(l.status)}</span></td>
@@ -1653,13 +1632,38 @@ function clearUsedKeys() {
   render();
   notify(`Очищено использованных ключей: ${diff}`, 'success', 'Список ключей обновлён');
 }
-function adminExtras(){let panel=document.getElementById('admin-chat');if(!panel){panel=document.createElement('div');panel.id='admin-chat';panel.className='panel';panel.innerHTML='<h2 class="admin-chat-heading">Чат <small>ЛОКАЛЬНОЕ ДЕМО</small></h2><div id="admin-chat-list"></div><h2>Поддержка</h2><div id="admin-support-list"></div>';document.querySelector('main').appendChild(panel);}const members=new Map(accounts().map(a=>[a.nick,a]));setHTML(document.getElementById('admin-chat-list'),readList('nc_chat').slice(-100).map(m=>`<div class="admin-chat-message"><div class="chat-msg-header"><b>${esc(m.nick)}</b>${safeMemberBadge(members.get(m.nick))}</div><p>${esc(m.text)}</p></div>`).join('')||'<p class="muted">Сообщений нет</p>');setHTML(document.getElementById('admin-support-list'),readList('nc_support').map((m,i)=>`<div class="support-entry"><b>${esc(m.nick)}</b><p>${esc(m.text)}</p>${m.reply?'<p class="support-reply">Ответ администратора: '+esc(m.reply)+'</p>':''}<button data-reply-index="${i}">Ответить</button></div>`).join('')||'<p class="muted">Обращений нет</p>');}
+function adminExtras(){
+  let chatPanel=document.getElementById('admin-chat');
+  if(!chatPanel){
+    chatPanel=document.createElement('div');
+    chatPanel.id='admin-chat';
+    chatPanel.className='panel';
+    chatPanel.dataset.staffPerm='chat.view';
+    chatPanel.innerHTML='<h2 class="admin-chat-heading">Чат <small>ЛОКАЛЬНОЕ ДЕМО</small></h2><div id="admin-chat-list"></div>';
+    document.querySelector('main').appendChild(chatPanel);
+  }
+  let supportPanel=document.getElementById('admin-support');
+  if(!supportPanel){
+    supportPanel=document.createElement('div');
+    supportPanel.id='admin-support';
+    supportPanel.className='panel';
+    supportPanel.dataset.staffPerm='support.view';
+    supportPanel.innerHTML='<h2 class="admin-chat-heading">Тикеты поддержки <small>ЛОКАЛЬНОЕ ДЕМО</small></h2><div id="admin-support-list"></div>';
+    document.querySelector('main').appendChild(supportPanel);
+  }
+  const members=new Map(accounts().map(a=>[a.nick,a]));
+  const chat=readList('nc_chat'),start=Math.max(0,chat.length-100);
+  const canDeleteChat=typeof staffCan==='function'&&staffCan('chat.delete');
+  setHTML(document.getElementById('admin-chat-list'),chat.slice(start).map((m,i)=>`<div class="admin-chat-message" data-msg-index="${start+i}"><div class="chat-msg-header"><b>${esc(m.nick)}</b>${safeMemberBadge(members.get(m.nick))}${canDeleteChat?`<button type="button" class="chat-delete" data-chat-del="${start+i}" title="Удалить сообщение" aria-label="Удалить сообщение">✕</button>`:''}</div><p>${esc(m.text)}</p></div>`).join('')||'<p class="muted">Сообщений нет</p>');
+  const canReply=typeof staffCan!=='function'||staffCan('support.reply');
+  setHTML(document.getElementById('admin-support-list'),readList('nc_support').map((m,i)=>`<div class="support-entry"><div class="support-entry-top"><b>${esc(m.nick)}</b>${canReply?'':'<span class="support-readonly">только чтение</span>'}</div><p>${esc(m.text)}</p>${m.reply?`<p class="support-reply">Ответ: ${esc(m.reply)}</p>`:'<p class="support-reply muted">Без ответа</p>'}<button data-reply-index="${i}"${canReply?'':' disabled'}>${m.reply?'Изменить ответ':'Ответить'}</button></div>`).join('')||'<p class="muted">Обращений нет</p>');
+}
 function replySupport(i){const entry=readList('nc_support')[i];if(!entry)return;openAdminAction({title:'Ответить игроку',description:entry.nick+' · '+entry.text,symbol:'↗',submitLabel:'Сохранить ответ',html:'<label for="admin-reply">Твой ответ</label><textarea id="admin-reply" maxlength="2000" aria-describedby="admin-action-error" placeholder="Напишите ответ…">'+esc(entry.reply||'')+'</textarea>',onSubmit:(form,error)=>{const text=form.querySelector('textarea').value.trim();if(!text){error('Напишите ответ перед отправкой.');return false;}const list=readList('nc_support');const found=list[i];if(!found||found.nick!==entry.nick||found.time!==entry.time){error('Обращение изменилось. Откройте его заново.');return false;}found.reply=text;adminStorage.setItem('nc_support',JSON.stringify(list));adminExtras();notify('Ответ для '+entry.nick+' сохранён в локальном обращении.','success','Ответ сохранён');return true;}});}
 function exportBackup(){const data={accounts:adminStorage.getItem('nc_accounts')||'[]',keys:adminStorage.getItem('nc_keys')||'[]',promos:adminStorage.getItem('nc_promos')||'[]',chat:adminStorage.getItem('nc_chat')||'[]',support:adminStorage.getItem('nc_support')||'[]',logs:adminStorage.getItem('nc_admin_logs')||'[]',server:adminStorage.getItem('nc_server_enabled')||'true',createdAt:new Date().toISOString()};const url=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'})),a=document.createElement('a');a.href=url;a.download='nocturne-backup-'+new Date().toISOString().slice(0,10)+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);notify('Аккаунты, промокоды, ключи и сообщения сохранены.','success','Резервная копия скачана');}
 document.addEventListener('click',e=>{const b=e.target.closest('[data-admin-action]');if(b&&!b.disabled){try{({money,hwid,block,removeSub,grantSub,pass}[b.dataset.adminAction])?.(b.dataset.member);}catch(problem){notify(problem.message||'Не удалось прочитать аккаунт.','error');}}const r=e.target.closest('[data-reply-index]');if(r)replySupport(Number(r.dataset.replyIndex));});
-document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.id==='adminPass'){e.preventDefault();document.getElementById('adminLogin')?.click();}if(!actionDialog)return;if(e.key==='Escape'){e.preventDefault();closeAdminAction();}if(e.key==='Tab'){const elements=[...actionDialog.form.querySelectorAll('button,input,textarea')].filter(el=>!el.disabled&&el.getClientRects().length);const first=elements[0],last=elements[elements.length-1];if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}}});
+document.addEventListener('keydown',e=>{if(!actionDialog)return;if(e.key==='Escape'){e.preventDefault();closeAdminAction();}if(e.key==='Tab'){const elements=[...actionDialog.form.querySelectorAll('button,input,textarea')].filter(el=>!el.disabled&&el.getClientRects().length);const first=elements[0],last=elements[elements.length-1];if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}}});
 window.addEventListener('storage',refreshAdmin);
-const tools=document.createElement('div');tools.className='panel';tools.innerHTML='<h2>Инструменты администратора</h2><p class="muted">Сохраните копию аккаунтов, ролей, ключей, чата и настроек сервера.</p><button onclick="exportBackup()">Скачать резервную копию</button>';document.querySelector('main').appendChild(tools);
+const tools=document.createElement('div');tools.className='panel';tools.dataset.staffPerm='system.backup';tools.innerHTML='<h2>Инструменты администратора</h2><p class="muted">Сохраните копию аккаунтов, ролей, ключей, чата и настроек сервера.</p><button onclick="exportBackup()">Скачать резервную копию</button>';document.querySelector('main').appendChild(tools);
 refreshAdmin();setInterval(refreshAdmin,3000);
 
 // Close the entry panel as softly as the other menus, with a timeout fallback.
@@ -1671,4 +1675,4 @@ function closeAdminLock(lock){
  timer=setTimeout(finish,320);
  try{lock.animate([{opacity:1},{opacity:0}],{duration:240,easing:'ease-in',fill:'forwards'}).finished.then(finish).catch(finish);}catch{finish();}
 }
-</script><script src="scroll-reveal.js"></script></body></html>
+</script><script src="staff-access.js"></script><script src="scroll-reveal.js"></script></body></html>

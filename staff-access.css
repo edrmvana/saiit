@@ -1,0 +1,544 @@
+/* NOCTURNE — доступ персонала: экран входа, карточка сотрудника, роли и права */
+
+[data-staff-perm][hidden] {
+  display: none !important;
+}
+
+body.staff-locked main {
+  filter: blur(2px);
+  pointer-events: none;
+  user-select: none;
+}
+
+/* ---------- экран входа ---------- */
+.staff-lock {
+  position: fixed;
+  inset: 0;
+  z-index: 150000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: radial-gradient(ellipse at 50% 0, #381f52aa, transparent 65%), #07050ec9;
+  backdrop-filter: blur(14px);
+  animation: staff-lock-in .22s ease-out;
+}
+
+@keyframes staff-lock-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.staff-lock-box {
+  width: min(420px, 100%);
+  padding: 30px 28px 24px;
+  border: 1px solid #6b4685;
+  border-radius: 20px;
+  background: radial-gradient(ellipse at 100% 0, #4a285c55, transparent 60%), #14101e;
+  box-shadow: 0 30px 110px #000a;
+  color: #eee5f7;
+}
+
+.staff-lock-brand {
+  font-size: 12px;
+  letter-spacing: .26em;
+  text-transform: uppercase;
+  color: #c9a6ec;
+}
+
+.staff-lock-brand span {
+  color: #7e6b8b;
+}
+
+.staff-lock-sub {
+  margin: 8px 0 20px;
+  font-size: 12px;
+  line-height: 1.7;
+  color: #a48ab7;
+}
+
+.staff-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  padding: 4px;
+  margin-bottom: 18px;
+  border: 1px solid #3c2c4a;
+  border-radius: 10px;
+  background: #0d0a15;
+}
+
+.staff-tabs button {
+  padding: 9px 10px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: transparent;
+  color: #a68ab8;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.staff-tabs button.active {
+  border-color: #6d4790;
+  background: #3a2450;
+  color: #ecd9ff;
+}
+
+.staff-lock-box label {
+  display: block;
+  margin: 0 0 7px;
+  font-size: 11px;
+  color: #b69fc6;
+}
+
+.staff-lock-box input {
+  width: 100%;
+  margin-bottom: 14px;
+  padding: 12px 13px;
+  border: 1px solid #5a3b72;
+  border-radius: 9px;
+  background: #0b0812;
+  color: #eee1fc;
+  font-size: 14px;
+  letter-spacing: .04em;
+  outline: none;
+}
+
+.staff-lock-box input#staff-key {
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  text-transform: uppercase;
+}
+
+.staff-lock-box input:focus {
+  border-color: #b587e1;
+  box-shadow: 0 0 0 3px #9467bc22;
+}
+
+.staff-lock-box form > button[type="submit"] {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #b080db70;
+  border-radius: 9px;
+  background: linear-gradient(110deg, #a175d6, #7744ae);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.staff-lock-msg {
+  min-height: 19px;
+  margin: 12px 0 0;
+  font-size: 11px;
+  line-height: 1.6;
+  color: #f295ab;
+}
+
+.staff-lock-msg.ok {
+  color: #83d8b4;
+}
+
+.staff-lock-hint {
+  margin: 10px 0 0;
+  font-size: 10px;
+  line-height: 1.7;
+  color: #7e6b8b;
+}
+
+.staff-lock-site {
+  display: inline-block;
+  margin-top: 18px;
+  color: #b895d8;
+  font-size: 11px;
+  text-decoration: none;
+}
+
+/* ---------- карточка вошедшего ---------- */
+#staff-identity {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 0 0 16px;
+  padding: 12px 16px;
+  border: 1px solid #4a3359;
+  border-radius: 12px;
+  background: linear-gradient(105deg, #241833, #15101f 75%);
+  font-size: 12px;
+  color: #a995b9;
+}
+
+.staff-id-symbol {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--staff-line, #6d4790);
+  border-radius: 9px;
+  background: var(--staff-bg, #3a2450);
+  color: var(--staff-color, #d3b0ff);
+  font-size: 17px;
+  flex-shrink: 0;
+}
+
+.staff-id-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.staff-id-text span {
+  font-size: 9px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: #7e6b8b;
+}
+
+.staff-id-text strong {
+  font-size: 13px;
+  font-weight: 600;
+  color: #ecdcf8;
+  overflow-wrap: anywhere;
+}
+
+.staff-id-role {
+  padding: 4px 9px;
+  border: 1px solid var(--staff-line, #6d4790);
+  border-radius: 6px;
+  background: var(--staff-bg, #3a2450);
+  color: var(--staff-color, #d3b0ff);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.staff-id-key {
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 10px;
+  color: #8d78a0;
+}
+
+#staff-logout {
+  margin-left: auto;
+  padding: 7px 12px;
+  border: 1px solid #543a68;
+  border-radius: 7px;
+  background: #22172d;
+  color: #c2a6d8;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+#staff-logout:hover {
+  background: #33203f;
+}
+
+/* ---------- панель сотрудников ---------- */
+.staff-warning {
+  margin: 0 0 18px;
+  padding: 12px 14px;
+  border: 1px solid #5a3d3d;
+  border-radius: 9px;
+  background: #2a191c66;
+  color: #d9b3bd;
+  font-size: 11px;
+  line-height: 1.8;
+}
+
+.staff-create {
+  display: grid;
+  grid-template-columns: minmax(170px, 1fr) minmax(200px, 1.4fr) auto;
+  gap: 12px;
+  align-items: end;
+  margin: 0 0 20px;
+  padding: 16px;
+  border: 1px solid #4a3359;
+  border-radius: 11px;
+  background: radial-gradient(ellipse at 100% 0, #3c235445, transparent 70%), #14101e;
+}
+
+.staff-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.staff-field label {
+  font-size: 11px;
+  color: #c0a8d4;
+}
+
+.staff-field select,
+.staff-field input {
+  width: 100%;
+  padding: 9px 11px;
+  border: 1px solid #583a70;
+  border-radius: 7px;
+  background: #0b0812;
+  color: #eadcf5;
+  font-size: 12px;
+  outline: none;
+}
+
+.staff-create > button {
+  padding: 10px 17px;
+  border: 1px solid #b080db70;
+  border-radius: 8px;
+  background: linear-gradient(115deg, #9d67dc, #7841c2);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.staff-create > button:hover {
+  filter: brightness(1.1);
+}
+
+.staff-newkey {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: -8px 0 20px;
+  padding: 12px 14px;
+  border: 1px dashed #7c5a9a;
+  border-radius: 9px;
+  background: #1a1125;
+  font-size: 11px;
+  color: #b9a0cc;
+}
+
+.staff-newkey code {
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: .05em;
+  color: #f0dcff;
+  overflow-wrap: anywhere;
+}
+
+.staff-newkey button {
+  padding: 6px 11px;
+  border: 1px solid #66418f;
+  border-radius: 6px;
+  background: #35204c;
+  color: #d8bcf5;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.staff-table-wrap {
+  overflow-x: auto;
+  border: 1px solid #33243e;
+  border-radius: 9px;
+  background: #0d0a17;
+}
+
+.staff-table {
+  width: 100%;
+  min-width: 660px;
+  border-collapse: collapse;
+}
+
+.staff-table th {
+  padding: 10px 12px;
+  background: #191323;
+  color: #c9b3da;
+  font-size: 10px;
+  letter-spacing: .045em;
+  text-transform: uppercase;
+  text-align: left;
+  position: sticky;
+  top: 0;
+}
+
+.staff-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #2b2036;
+  font-size: 11.5px;
+  color: #cbb8da;
+  vertical-align: middle;
+}
+
+.staff-table tr:last-child td {
+  border-bottom: none;
+}
+
+.staff-code {
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 11.5px;
+  letter-spacing: .04em;
+  color: #e7d3f7;
+  white-space: nowrap;
+}
+
+.staff-code.masked {
+  color: #8d7a9d;
+}
+
+.staff-status {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  border-radius: 5px;
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.staff-status.new {
+  background: #2a2438;
+  color: #b3a2c4;
+}
+
+.staff-status.active {
+  background: #1e4736;
+  color: #7ee6bb;
+}
+
+.staff-status.revoked {
+  background: #47202b;
+  color: #f295ab;
+}
+
+.staff-actions {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.staff-actions button {
+  padding: 4px 8px;
+  border: 1px solid #5b3d73;
+  border-radius: 5px;
+  background: #2a1c38;
+  color: #cbb0e2;
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.staff-actions button.danger {
+  border-color: #7a3a4a;
+  background: #361d25;
+  color: #f0a2b2;
+}
+
+.staff-actions button:hover {
+  filter: brightness(1.15);
+}
+
+.staff-matrix-wrap {
+  margin-top: 22px;
+  overflow-x: auto;
+}
+
+.staff-matrix {
+  width: 100%;
+  min-width: 600px;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+
+.staff-matrix th,
+.staff-matrix td {
+  padding: 7px 10px;
+  border-bottom: 1px solid #2b2036;
+  text-align: center;
+}
+
+.staff-matrix th:first-child,
+.staff-matrix td:first-child {
+  text-align: left;
+  color: #c6afd8;
+}
+
+.staff-matrix thead th {
+  background: #191323;
+  color: #b9a0cc;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.staff-matrix .yes {
+  color: #7ee6bb;
+  font-weight: 700;
+}
+
+.staff-matrix .no {
+  color: #574968;
+}
+
+.staff-muted {
+  color: #9b86aa;
+  font-size: 11px;
+  line-height: 1.8;
+}
+
+.staff-panel-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+
+.staff-panel-heading h2 {
+  margin: 0;
+}
+
+.staff-panel-heading p {
+  margin: 6px 0 0;
+  font-size: 11px;
+  color: #9b86aa;
+  line-height: 1.7;
+}
+
+/* ---------- чат: удаление сообщений ---------- */
+.chat-delete {
+  margin-left: auto;
+  padding: 2px 7px;
+  border: 1px solid #5c3345;
+  border-radius: 5px;
+  background: #2c1721;
+  color: #ef9db2;
+  font-size: 10px;
+  line-height: 1.5;
+  cursor: pointer;
+}
+
+.chat-delete:hover {
+  background: #45202f;
+}
+
+.support-readonly {
+  margin-left: 8px;
+  font-size: 9px;
+  color: #8a748f;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+.support-entry .support-entry-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 640px) {
+  .staff-create {
+    grid-template-columns: 1fr;
+  }
+
+  .staff-lock-box {
+    padding: 24px 20px 20px;
+  }
+
+  #staff-logout {
+    margin-left: 0;
+  }
+}
