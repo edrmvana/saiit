@@ -146,6 +146,10 @@ button:active{transform:translateY(1px)}
       <button type="button" onclick="refreshAdmin()">Обновить список</button>
     </div>
   </div>
+  <div class="players-tools" data-staff-perm="players.unban_all" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:0 0 14px">
+    <button type="button" onclick="unbanAllPlayers()" style="background:#1d3b2c;border-color:#3f8f74;color:#d7ffe9">✓ Разбанить всех</button>
+    <span class="muted" style="font-size:11px" id="unban-all-note">Снимает блокировку сразу со всех игроков</span>
+  </div>
   <p id="accounts-status" class="accounts-status" hidden></p>
   <details class="storage-details"><summary>Где хранятся аккаунты?</summary><p id="storage-diagnostics">Проверка хранилища…</p></details>
 
@@ -736,6 +740,8 @@ function render() {
         (searchVal || currentPlayerFilter !== 'all' ? 'Игроки по заданному фильтру или запросу не найдены.' : (accountReadState.error ? 'Список не прочитан. Данные не изменены.' : 'В этом хранилище нет игроков.')) +
         '</td></tr>';
     } else {
+      const canBalance = typeof staffCan !== 'function' || staffCan('players.balance');
+      const canPassword = typeof staffCan !== 'function' || staffCan('players.password');
       tableBody.innerHTML = filtered.map(a => {
         const hasSub = ncSubActive(a);
         const subInfo = ncSub(a) || {};
@@ -768,8 +774,8 @@ function render() {
           <td>
             <div class="actions">
               <button type="button" data-member="${esc(a.nick)}" data-admin-action="grantSub" ${accountReadState.error ? 'disabled' : ''} style="background:#55308a;border-color:#7f48cc">Подписка</button>
-              <button type="button" data-member="${esc(a.nick)}" data-admin-action="money" ${accountReadState.error ? 'disabled' : ''}>Баланс</button><button type="button" data-member="${esc(a.nick)}" data-admin-action="mediaRole" ${accountReadState.error ? 'disabled' : ''}>Роль</button>
-              <button type="button" data-member="${esc(a.nick)}" data-admin-action="pass" ${accountReadState.error ? 'disabled' : ''} style="background:#281e3d;border-color:#5a3f87">Пароль</button>
+              ${canBalance ? `<button type="button" data-member="${esc(a.nick)}" data-admin-action="money" ${accountReadState.error ? 'disabled' : ''}>Баланс</button>` : ''}<button type="button" data-member="${esc(a.nick)}" data-admin-action="mediaRole" ${accountReadState.error ? 'disabled' : ''}>Роль</button>
+              ${canPassword ? `<button type="button" data-member="${esc(a.nick)}" data-admin-action="pass" ${accountReadState.error ? 'disabled' : ''} style="background:#281e3d;border-color:#5a3f87">Пароль</button>` : ''}
               <button type="button" data-member="${esc(a.nick)}" data-admin-action="hwid" ${accountReadState.error ? 'disabled' : ''}>Сброс HWID</button>
               <button type="button" data-member="${esc(a.nick)}" data-admin-action="block" ${accountReadState.error ? 'disabled' : ''}>${a.blocked ? 'Разблок' : 'Блок'}</button>
               ${hasSub ? `<button type="button" data-member="${esc(a.nick)}" data-admin-action="removeSub" class="danger" style="background:#4a1523;color:#ff9eaf;border:1px solid #7c2438">Снять подписку</button>` : ''}
@@ -1648,7 +1654,7 @@ function adminExtras(){
     chatPanel.id='admin-chat';
     chatPanel.className='panel';
     chatPanel.dataset.staffPerm='chat.view';
-    chatPanel.innerHTML='<h2 class="admin-chat-heading">Чат <small>ЛОКАЛЬНОЕ ДЕМО</small></h2><div id="admin-chat-list"></div><div class="admin-chat-send"><input id="admin-chat-input" maxlength="1000" placeholder="Написать в чат как сотрудник…" aria-label="Сообщение в чат"><button type="button" onclick="sendAdminChat()">Отправить</button></div>';
+    chatPanel.innerHTML='<h2 class="admin-chat-heading">Чат <small>ЛОКАЛЬНОЕ ДЕМО</small></h2><p class="muted" style="font-size:11px;margin:0 0 8px">Писать могут все сотрудники: младший модератор, модератор, админ, старший админ и владелец.</p><div id="admin-chat-list"></div><div class="admin-chat-send" style="display:flex;gap:8px;align-items:center;margin-top:12px"><input id="admin-chat-input" maxlength="1000" style="flex:1;min-width:0" placeholder="Написать в чат как сотрудник…" aria-label="Сообщение в чат"><button type="button" onclick="sendAdminChat()">Отправить</button></div>';
     document.querySelector('main').appendChild(chatPanel);
     const chatInput=chatPanel.querySelector('#admin-chat-input');
     if(chatInput)chatInput.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();sendAdminChat();}});
@@ -1670,19 +1676,56 @@ function adminExtras(){
   if(window.NCTickets){window.NCTickets.renderAdmin(document.getElementById('admin-support-list'),{canReply:canReply});}else{setHTML(document.getElementById('admin-support-list'),'<p class="muted">Не удалось загрузить тикеты.</p>');}
 }
 function replySupport(i){const entry=readList('nc_support')[i];if(!entry)return;openAdminAction({title:'Ответить игроку',description:entry.nick+' · '+entry.text,symbol:'↗',submitLabel:'Сохранить ответ',html:'<label for="admin-reply">Твой ответ</label><textarea id="admin-reply" maxlength="2000" aria-describedby="admin-action-error" placeholder="Напишите ответ…">'+esc(entry.reply||'')+'</textarea>',onSubmit:(form,error)=>{const text=form.querySelector('textarea').value.trim();if(!text){error('Напишите ответ перед отправкой.');return false;}const list=readList('nc_support');const found=list[i];if(!found||found.nick!==entry.nick||found.time!==entry.time){error('Обращение изменилось. Откройте его заново.');return false;}found.reply=text;adminStorage.setItem('nc_support',JSON.stringify(list));adminExtras();notify('Ответ для '+entry.nick+' сохранён в локальном обращении.','success','Ответ сохранён');return true;}});}
+function unbanAllPlayers(){
+ const blocked=accounts().filter(a=>a.blocked);
+ if(!blocked.length){notify('Заблокированных игроков нет.','info','Разбан не нужен');return;}
+ const preview=blocked.slice(0,8).map(a=>'<li>'+esc(a.nick)+'</li>').join('');
+ const rest=blocked.length>8?'<li>…и ещё '+(blocked.length-8)+'</li>':'';
+ openAdminAction({
+  title:'Разбанить всех',
+  description:'Будет разблокировано игроков: '+blocked.length,
+  symbol:'✓',
+  submitLabel:'Разбанить всех',
+  html:'<p class="muted" style="font-size:12px;margin:0 0 8px">Блокировка снимется сразу со всех игроков. Это действие попадёт в журнал.</p>'+
+   '<ul class="muted" style="max-height:180px;overflow:auto;font-size:12px;padding-left:18px;margin:0">'+preview+rest+'</ul>',
+  onSubmit:()=>{
+   const fresh=accounts();
+   let count=0;
+   fresh.forEach(a=>{if(a.blocked){a.blocked=false;count++;}});
+   if(!count){notify('Заблокированных игроков уже нет.','info','Разбан');return true;}
+   save(fresh);
+   logAdminAction('Массовый разбан','Разблокировано игроков: '+count);
+   notify('Разблокировано игроков: '+count+'.','success','Разбан всех');
+   return true;
+  }
+ });
+}
+function adminChatAuthor(){
+ let session=null;
+ try{session=JSON.parse(adminStorage.getItem('nc_staff_session')||'null');}catch{}
+ if(session&&session.name)return{name:String(session.name),role:String(session.role||'')};
+ if(typeof staffCurrentActor==='function'){
+  const actor=staffCurrentActor();
+  if(actor&&actor!=='Не авторизован'){
+   const parts=String(actor).split(' · ');
+   return{name:parts[0],role:parts[1]||''};
+  }
+ }
+ return null;
+}
 function sendAdminChat(){
- if(typeof staffCan==='function'&&!staffCan('chat.view'))return;
- let session=null;try{session=JSON.parse(adminStorage.getItem('nc_staff_session')||'null');}catch{}
- if(!session||!session.name){notify('Сначала войдите в панель, чтобы писать в чат.','error');return;}
+ const author=adminChatAuthor();
+ if(!author){notify('Сначала войдите в панель, чтобы писать в чат.','error');return;}
  const input=document.getElementById('admin-chat-input');
- const text=(input&&input.value||'').trim().slice(0,1000);
+ if(!input){notify('Поле чата не найдено. Обновите страницу.','error');return;}
+ const text=(input.value||'').trim().slice(0,1000);
  if(!text)return;
  const chat=readList('nc_chat');
- chat.push({nick:session.name,text:text,time:Date.now(),staff:true,role:session.role||''});
+ chat.push({nick:author.name,text:text,time:Date.now(),staff:true,role:author.role||''});
  adminStorage.setItem('nc_chat',JSON.stringify(chat));
  input.value='';
  adminExtras();
- notify('Сообщение отправлено в чат от имени '+session.name+'.','success','Чат');
+ notify('Сообщение отправлено в чат от имени '+author.name+'.','success','Чат');
 }
 function assignMediaRole(n){
  const member=accounts().find(a=>String(a.nick)===String(n));

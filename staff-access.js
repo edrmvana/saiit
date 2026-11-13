@@ -30,13 +30,30 @@
 
   var ROLE_ORDER = ['junior_moderator', 'moderator', 'admin', 'senior_admin', 'owner'];
 
+  // Ключи могли быть созданы старой версией панели, где роль сохранялась подписью
+  // («Админ», «Старший админ»). Приводим такие значения к идентификаторам, иначе
+  // роль теряет все права — в том числе доступ к чату.
+  var ROLE_ALIASES = { owner: 'owner', 'владелец': 'owner' };
+  ['junior_moderator', 'moderator', 'admin', 'senior_admin', 'owner'].forEach(function (id) {
+    ROLE_ALIASES[id] = id;
+    ROLE_ALIASES[String(ROLES[id].label).trim().toLowerCase()] = id;
+  });
+
+  function normalizeRole(role) {
+    var key = String(role || '').trim().toLowerCase().replace(/\s+/g, ' ');
+    return ROLE_ALIASES[key] || key;
+  }
+
   var PERMISSIONS = [
     { id: 'support.view', label: 'Видеть тикеты игроков' },
     { id: 'support.reply', label: 'Отвечать на тикеты и закрывать их' },
     { id: 'chat.view', label: 'Чат: читать и писать' },
     { id: 'chat.delete', label: 'Удалять сообщения в чате' },
     { id: 'players.view', label: 'Смотреть список игроков' },
-    { id: 'players.edit', label: 'Менять игроков: баланс, пароль, блокировка, подписка' },
+    { id: 'players.edit', label: 'Менять игроков: блокировка, HWID, подписка' },
+    { id: 'players.balance', label: 'Менять баланс игрока (валюты)' },
+    { id: 'players.password', label: 'Менять пароль игрока' },
+    { id: 'players.unban_all', label: 'Разблокировать сразу всех игроков' },
     { id: 'keys.view', label: 'Смотреть ключи подписок' },
     { id: 'keys.generate', label: 'Создавать ключи подписок' },
     { id: 'keys.revoke', label: 'Отключать и удалять ключи подписок' },
@@ -59,10 +76,11 @@
     moderator: ['support.view', 'support.reply', 'chat.view', 'chat.delete', 'players.view'],
     admin: [
       'support.view', 'support.reply', 'chat.view', 'chat.delete', 'players.view', 'players.edit',
-      'keys.view', 'keys.generate', 'keys.revoke', 'promos.manage', 'logs.view', 'staff.view'
+      'players.unban_all', 'keys.view', 'keys.generate', 'keys.revoke', 'promos.manage', 'logs.view', 'staff.view'
     ],
     senior_admin: [
       'support.view', 'support.reply', 'chat.view', 'chat.delete', 'players.view', 'players.edit',
+      'players.balance', 'players.password', 'players.unban_all',
       'keys.view', 'keys.generate', 'keys.revoke', 'promos.manage', 'logs.view', 'logs.clear',
       'system.backup', 'staff.view', 'staff.issue', 'staff.revoke', 'subs.mass', 'server.manage'
     ],
@@ -122,7 +140,7 @@
     if (!key || key.revoked) { storeRemove(SESSION_STORAGE); return null; }
     return {
       kind: 'staff',
-      role: key.role,
+      role: normalizeRole(key.role),
       name: String(key.usedBy || session.name || 'Сотрудник'),
       keyCode: key.code,
       loginAt: Number(session.loginAt) || 0
@@ -142,7 +160,7 @@
 
   function hasPerm(session, perm) {
     if (!session) return false;
-    var list = ROLE_PERMISSIONS[session.role] || [];
+    var list = ROLE_PERMISSIONS[normalizeRole(session.role)] || [];
     return list.indexOf(perm) !== -1;
   }
 
@@ -414,6 +432,15 @@
 
   /* ------------------------------------------------------------- применение прав */
 
+  // Таблица игроков рисуется ещё до загрузки staff-access.js, поэтому кнопки
+  // «Баланс» и «Пароль» успевают появиться у всех ролей. После применения прав
+  // перерисовываем панели, чтобы админ видел только свои действия.
+  function repaintPanels() {
+    try {
+      if (typeof window.render === 'function') window.render();
+    } catch (e) { /* ignore */ }
+  }
+
   function applyPermissions() {
     var session = readSession();
 
@@ -427,6 +454,7 @@
     });
 
     renderStaffPanel();
+    repaintPanels();
 
     if (!session && !lockEl) showLock('');
   }
@@ -701,8 +729,9 @@
     addPromoUses: 'promos.manage',
     clearExpiredPromos: 'promos.manage',
     toggleServer: 'server.manage',
-    money: 'players.edit',
-    pass: 'players.edit',
+    money: 'players.balance',
+    pass: 'players.password',
+    unbanAllPlayers: 'players.unban_all',
     block: 'players.edit',
     hwid: 'players.edit',
     grantSub: 'players.edit',
