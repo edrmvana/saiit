@@ -1,0 +1,132 @@
+/* NOCTURNE — лёгкий блюр и плавная навигация.
+   Намеренно маленькие значения: стекло только там, где под ним есть контент
+   (липкая шапка, личный кабинет, окна, тосты). Сплошные панели не размываются,
+   чтобы не терять контраст текста и не нагружать браузер. */
+
+:root {
+  --nc-blur: 7px;
+  --nc-blur-soft: 5px;
+  --nc-glass: rgba(11, 10, 19, .78);
+  --nc-glass-strong: rgba(9, 8, 16, .9);
+  --nc-glass-line: rgba(160, 120, 235, .16);
+  --nc-ease: cubic-bezier(.22, 1, .36, 1);
+}
+
+/* ------------------------------------------------------------------ шапка */
+.topbar {
+  position: sticky;
+  top: 0;
+  background: var(--nc-glass);
+  -webkit-backdrop-filter: blur(var(--nc-blur)) saturate(125%);
+  backdrop-filter: blur(var(--nc-blur)) saturate(125%);
+  border-bottom: 1px solid var(--nc-glass-line);
+  transition: background-color .35s ease, box-shadow .4s ease, border-color .35s ease;
+}
+
+.topbar.is-stuck {
+  background: var(--nc-glass-strong);
+  box-shadow: 0 12px 34px rgba(0, 0, 0, .38);
+}
+
+/* Полоса прогресса прокрутки — подсказывает, где вы находитесь на странице */
+.nc-progress {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.nc-progress i {
+  display: block;
+  width: 0;
+  height: 100%;
+  background: linear-gradient(90deg, #7c4dff, #b79bff);
+  box-shadow: 0 0 12px rgba(124, 77, 255, .55);
+  transition: width .14s linear;
+}
+
+/* ------------------------------------------------------- окна и оверлеи */
+.nc-modal,
+.avatar-modal,
+.purchase-modal,
+.info-modal,
+.account-card,
+.nav-scrim {
+  -webkit-backdrop-filter: blur(var(--nc-blur)) saturate(120%);
+  backdrop-filter: blur(var(--nc-blur)) saturate(120%);
+}
+
+.nc-window,
+.avatar-window,
+.purchase-window,
+.info-window,
+.cabinet-nav,
+.nc-toast,
+.admin-toasts .admin-toast {
+  -webkit-backdrop-filter: blur(var(--nc-blur)) saturate(130%);
+  backdrop-filter: blur(var(--nc-blur)) saturate(130%);
+}
+
+/* На телефоне боковое меню открывается поверх страницы — там блюр уместен */
+@media (max-width: 760px) {
+  .sidebar {
+    background: rgba(13, 13, 22, .92);
+    -webkit-backdrop-filter: blur(var(--nc-blur)) saturate(120%);
+    backdrop-filter: blur(var(--nc-blur)) saturate(120%);
+  }
+}
+
+/* --------------------------------------------------------------- плавность */
+html {
+  scroll-behavior: smooth;
+}
+
+.topbar,
+.sidebar {
+  transition-timing-function: var(--nc-ease);
+}
+
+/* Мягкое проявление контента: без рывков и без «прыгающих» карточек */
+main > * {
+  transition: opacity .4s ease, transform .5s var(--nc-ease);
+}
+
+.sidebar nav a {
+  transition: padding-left .3s var(--nc-ease), color .25s ease, background .3s ease,
+              border-color .3s ease, box-shadow .35s ease;
+}
+
+.breadcrumb b {
+  transition: color .25s ease, opacity .25s ease;
+}
+
+/* Подсветка активного раздела в меню при прокрутке */
+.sidebar nav a.spy-active:not(.active) {
+  color: #d8ccf6;
+  background: rgba(70, 42, 112, .28);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .topbar,
+  main > *,
+  .sidebar nav a,
+  .breadcrumb b,
+  .nc-progress i {
+    transition: none !important;
+  }
+}
+
+/* Safari и старые браузеры без backdrop-filter: просто плотный фон */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .topbar { background: #0b0b13f5; }
+  .nc-modal,
+  .avatar-modal,
+  .purchase-modal,
+  .info-modal,
+  .account-card,
+  .nav-scrim { background: rgba(6, 5, 12, .92); }
+}

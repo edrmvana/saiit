@@ -8,31 +8,124 @@
 .admin-error{color:#ff8297;min-height:20px}
 </style>
 <script>
+/* NOCTURNE — вход в админ-панель по ключу доступа.
+   В коде хранится только SHA-256 хеш ключа, сами символы ключа — нет.
+   Ключ нормализуется так же, как в настольном приложении: пробелы
+   удаляются, буквы приводятся к нижнему регистру. */
 (function(){
- const ADMIN_PASSWORD="qwerty123123";
+ const ACCESS_KEY_HASH="230fce14f93a97a604b0fcbb597360dc386f9bae15fe6a13f8b8696aa3e562a5";
+function utf8Bytes(str){
+  if (typeof TextEncoder !== 'undefined') return new TextEncoder().encode(str);
+  const s = unescape(encodeURIComponent(str));
+  const out = new Uint8Array(s.length);
+  for (let i = 0; i < s.length; i++) out[i] = s.charCodeAt(i) & 0xff;
+  return out;
+}
+
+function sha256Hex(input){
+  const K = [
+    0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,
+    0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,
+    0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,
+    0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,
+    0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,
+    0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,
+    0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,
+    0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2];
+  const bytes = utf8Bytes(String(input));
+  const length = bytes.length;
+  const blocks = Math.ceil((length + 9) / 64);
+  const total = blocks * 64;
+  const data = new Uint8Array(total);
+  data.set(bytes);
+  data[length] = 0x80;
+  const bitLength = length * 8;
+  const high = Math.floor(bitLength / 4294967296);
+  const low = bitLength >>> 0;
+  data[total - 8] = (high >>> 24) & 0xff;
+  data[total - 7] = (high >>> 16) & 0xff;
+  data[total - 6] = (high >>> 8) & 0xff;
+  data[total - 5] = high & 0xff;
+  data[total - 4] = (low >>> 24) & 0xff;
+  data[total - 3] = (low >>> 16) & 0xff;
+  data[total - 2] = (low >>> 8) & 0xff;
+  data[total - 1] = low & 0xff;
+
+  let h0=0x6a09e667,h1=0xbb67ae85,h2=0x3c6ef372,h3=0xa54ff53a;
+  let h4=0x510e527f,h5=0x9b05688c,h6=0x1f83d9ab,h7=0x5be0cd19;
+  const w = new Uint32Array(64);
+  for (let b = 0; b < blocks; b++) {
+    for (let i = 0; i < 16; i++) {
+      const o = b * 64 + i * 4;
+      w[i] = ((data[o] << 24) | (data[o+1] << 16) | (data[o+2] << 8) | data[o+3]);
+    }
+    for (let i = 16; i < 64; i++) {
+      const s0 = ((w[i-15] >>> 7) | (w[i-15] << 25)) ^ ((w[i-15] >>> 18) | (w[i-15] << 14)) ^ (w[i-15] >>> 3);
+      const s1 = ((w[i-2] >>> 17) | (w[i-2] << 15)) ^ ((w[i-2] >>> 19) | (w[i-2] << 13)) ^ (w[i-2] >>> 10);
+      w[i] = (w[i-16] + s0 + w[i-7] + s1) >>> 0;
+    }
+    let a=h0,bb=h1,c=h2,d=h3,e=h4,f=h5,g=h6,hh=h7;
+    for (let i = 0; i < 64; i++) {
+      const S1 = ((e >>> 6) | (e << 26)) ^ ((e >>> 11) | (e << 21)) ^ ((e >>> 25) | (e << 7));
+      const ch = (e & f) ^ (~e & g);
+      const t1 = (hh + S1 + ch + K[i] + w[i]) >>> 0;
+      const S0 = ((a >>> 2) | (a << 30)) ^ ((a >>> 13) | (a << 19)) ^ ((a >>> 22) | (a << 10));
+      const maj = (a & bb) ^ (a & c) ^ (bb & c);
+      const t2 = (S0 + maj) >>> 0;
+      hh = g; g = f; f = e; e = (d + t1) >>> 0;
+      d = c; c = bb; bb = a; a = (t1 + t2) >>> 0;
+    }
+    h0 = (h0 + a) >>> 0; h1 = (h1 + bb) >>> 0; h2 = (h2 + c) >>> 0; h3 = (h3 + d) >>> 0;
+    h4 = (h4 + e) >>> 0; h5 = (h5 + f) >>> 0; h6 = (h6 + g) >>> 0; h7 = (h7 + hh) >>> 0;
+  }
+  const hex = n => n.toString(16).padStart(8, '0');
+  return hex(h0)+hex(h1)+hex(h2)+hex(h3)+hex(h4)+hex(h5)+hex(h6)+hex(h7);
+}
+
+ function normalizeKey(value){return String(value==null?"":value).replace(/\s+/g,"").toLowerCase();}
+ function keyHash(value){return sha256Hex(normalizeKey(value));}
  document.addEventListener("DOMContentLoaded",()=>{
    const lock=document.createElement("div");
    lock.className="admin-lock";
    lock.innerHTML=`<div class="admin-box">
    <h2>NOCTURNE Admin</h2>
-   <p class="muted">Введите пароль администратора</p>
-   <input id="adminPass" type="password" placeholder="Пароль">
+   <p class="muted">Введите ключ доступа</p>
+   <input id="adminKey" type="password" placeholder="Ключ доступа" autocomplete="off" spellcheck="false">
+   <div class="admin-key-tools"><button type="button" id="adminKeyToggle">Показать</button></div>
    <button id="adminLogin">Войти</button>
    <div class="admin-error" id="adminError"></div>
+   <p class="admin-lock-hint">Тот же ключ открывает настольное приложение NOCTURNE Key Pass.</p>
    </div>`;
    document.body.appendChild(lock);
-   document.getElementById("adminLogin").onclick=()=>{
-     let val=document.getElementById("adminPass").value;
-     if(val===ADMIN_PASSWORD){
-       closeAdminLock(lock);
-     }else{
-       document.getElementById("adminError").textContent="Неверный пароль";
-       document.getElementById("adminPass").value="";
-     }
+   const input=document.getElementById("adminKey");
+   const error=document.getElementById("adminError");
+   const toggle=document.getElementById("adminKeyToggle");
+   function tryLogin(){
+     error.textContent="";
+     if(!input.value.trim()){error.textContent="Введите ключ доступа";input.focus();return;}
+     if(keyHash(input.value)===ACCESS_KEY_HASH){closeAdminLock(lock);return;}
+     error.textContent="Ключ не найден или недействителен";
+     input.value="";
+     input.focus();
+   }
+   document.getElementById("adminLogin").onclick=tryLogin;
+   input.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();tryLogin();}});
+   if(toggle)toggle.onclick=()=>{
+     const shown=input.type==="text";
+     input.type=shown?"password":"text";
+     toggle.textContent=shown?"Показать":"Скрыть";
+     input.focus();
    };
+   setTimeout(()=>input.focus(),120);
  });
 })();
-</script>
+</script><style>
+.expiry-date{display:inline-block;line-height:1.5}
+.expiry-date b{font-weight:600;color:#e3d2f2}
+.expiry-date small{display:block;margin-top:4px;font-size:10px;color:#92809e}
+.expiry-date small.is-soon{color:#f0c079}
+.expiry-date small.is-over{color:#f08b9d}
+</style><style>.admin-key-tools{display:flex;justify-content:flex-end;margin:2px 0 0}.admin-key-toggle,#adminKeyToggle{padding:0;font-size:10px;background:transparent;border:0;color:#a98cc4;text-decoration:underline dotted;box-shadow:none}.admin-lock-hint{margin:14px 0 0;font-size:9.5px;line-height:1.7;color:#7d6b8e}</style>
 <style>
 :root{color-scheme:dark}body{background:#090911;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;color:#e8dff3}main{max-width:1180px;padding:35px 24px}.panel{background:#12101d;border-color:#35293f;border-radius:13px;overflow:auto}input,select{background:#0b0912;border-color:#4a335d}button{background:#8457b9;border-color:#a575d344}button:hover{filter:brightness(1.12)}h1{color:#ceb3ef;letter-spacing:-1px}.admin-box{background:radial-gradient(ellipse at top,#43255466,transparent),#14101f;border-color:#674180;box-shadow:0 30px 100px #0009;width:min(360px,calc(100vw - 50px))}.admin-box button{background:#8756c2}.admin-notice{border:1px solid #614772;border-radius:10px;padding:14px 18px;background:#281930;font-size:12px;line-height:1.8;color:#c1a7d4;margin-bottom:25px}.admin-notice a{color:#e4c9ff}.admin-notice strong{color:#e9c9ff}th,td{font-size:12px;border-color:#37283f}table{min-width:600px}.muted{color:#9b86aa}@media(max-width:600px){main{padding:20px 12px}.server-panel{flex-direction:column;align-items:start}.panel{padding:15px}h1{font-size:27px}}button:focus-visible,a:focus-visible{outline:2px solid #c79bef;outline-offset:3px}
 </style><style>.role-badge,.chat-msg .role-badge{display:inline-flex;align-items:center;gap:5px;flex-shrink:0;width:max-content;max-width:100%;margin:0;padding:3px 8px;border-radius:6px;border:1px solid var(--role-line,#775397);background:var(--role-bg,#322043);color:var(--role-text,#d3b0ff);font-size:10px;font-weight:600;line-height:1.4;letter-spacing:.01em;vertical-align:middle}.role-cosmic{--role-line:#8057b16b;--role-bg:#51317145;--role-text:#d1acff}.role-shadow{--role-line:#7383a05c;--role-bg:#28334599;--role-text:#bccce6}.role-legend{--role-line:#a079446b;--role-bg:#61491e45;--role-text:#f2cc84}.role-badge .role-symbol,.chat-msg .role-badge .role-symbol{display:inline;margin:0;font-size:12px;color:inherit;line-height:1}.chat-msg-header{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.chat-msg-header time{margin-left:auto;color:#72677e;font-size:9px;font-variant-numeric:tabular-nums}.chat-msg .chat-message-text{display:block;line-height:1.7;color:#d4c6df;margin-top:7px;white-space:pre-wrap}.role-section-heading{display:flex;gap:12px;align-items:start;justify-content:space-between;margin-bottom:17px}.role-section-heading h2{margin-bottom:5px}.role-section-heading p{font-size:11px;color:#9c8ba8;line-height:1.6;margin:0}.role-count{font-size:10px;color:#a88dbd;border:1px solid #4b345b;border-radius:6px;padding:3px 7px;white-space:nowrap}.wardrobe{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:27px}.wardrobe-item{background:radial-gradient(ellipse at 50% 0,var(--role-bg),transparent 80%),#15111e;border:1px solid #372c41;border-radius:12px;padding:17px;position:relative;transition:border-color .25s,background .25s}.wardrobe-item.equipped{border-color:var(--role-line);box-shadow:inset 0 0 0 1px var(--role-bg)}.wardrobe-icon{width:38px;height:38px;border:1px solid var(--role-line);background:var(--role-bg);color:var(--role-text);border-radius:10px;font-size:24px;display:grid;place-items:center;margin-bottom:14px}.wardrobe-item .role-badge{font-size:10px}.wardrobe-description{color:#95839f;font-size:10px;line-height:1.7;margin:9px 0 16px!important;min-height:34px}.wardrobe-status{font-size:8px;position:absolute;right:12px;top:16px;letter-spacing:.08em;text-transform:uppercase;color:#786b83}.equipped .wardrobe-status{color:var(--role-text)}.wardrobe-toggle{width:100%;min-height:36px;padding:8px 10px;border:1px solid #7451935c;border-radius:7px;background:#53317070;color:#d9b9f3;font-size:11px;transition:background .2s,border-color .2s}.wardrobe-toggle:hover{background:#624078}.equipped .wardrobe-toggle{background:transparent;border-color:var(--role-line);color:var(--role-text)}.role-empty{padding:20px;border:1px dashed #493156;border-radius:10px;color:#9b85ad;font-size:12px;line-height:1.8;margin-bottom:22px}.role-empty button{margin-top:10px;display:block;padding:0;color:#c29be9;font-size:12px}.chat-identity{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:12px;border:1px solid #33283d;border-radius:9px;background:#15101e;margin:18px 0 4px;font-size:11px;color:#9d89af}.chat-identity strong{font-weight:500;color:#dbcae7;overflow-wrap:anywhere}.chat-identity .role-manage{margin-left:auto;padding:4px;color:#b895d8;font-size:10px}.chat-identity .role-none{color:#83728f;font-size:10px}.admin-chat-message{padding:13px 0;border-bottom:1px solid #34253f;overflow-wrap:anywhere}.admin-chat-message p{color:#c1aecf;line-height:1.7;margin:7px 0 0;font-size:12px;white-space:pre-wrap}.admin-chat-message .chat-msg-header b{font-size:12px;color:#d4b7ed}@media(max-width:700px){.wardrobe{grid-template-columns:1fr}.wardrobe-item{display:grid;grid-template-columns:42px 1fr;column-gap:12px;padding:15px}.wardrobe-icon{grid-row:span 2;margin:0}.wardrobe-item>.role-badge{align-self:center;max-width:calc(100% - 55px)}.wardrobe-description{min-height:0;margin:5px 0 12px!important;grid-column:2;font-size:10px}.wardrobe-toggle{grid-column:1/-1}.wardrobe-status{top:23px;font-size:7px}.role-section-heading p{font-size:10px}.chat-identity .role-manage{margin-left:0}.chat-msg-header{gap:6px}.chat-msg-header time{font-size:8px}.role-badge,.chat-msg .role-badge{font-size:9px}}
@@ -324,6 +417,7 @@ button:active{transform:translateY(1px)}
         <tr>
           <th>Ключ / Название</th>
           <th>Тариф</th>
+          <th>Действует до</th>
           <th>Стоимость</th>
           <th>Статус / Активация</th>
           <th>Действия</th>
@@ -460,6 +554,7 @@ const prices={7:59,14:100,30:200,90:500,180:800,0:99};
 const noMotion=()=>typeof Element.prototype.animate!=='function'||(typeof matchMedia==='function'&&matchMedia('(prefers-reduced-motion: reduce)').matches);
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const rubles=value=>new Intl.NumberFormat('ru-RU',{style:'currency',currency:'RUB',maximumFractionDigits:2}).format(Number(value)||0);
+const pluralDays=n=>{const a=Math.abs(n)%100,b=a%10;return a>10&&a<20?'дней':b===1?'день':b>=2&&b<=4?'дня':'дней';};
 function readList(key){try{const a=JSON.parse(adminStorage.getItem(key)||'[]');return Array.isArray(a)?a:[];}catch{return[];}}
 let accountReadState={source:'none',error:'',skipped:0,count:0};
 function accounts(){
@@ -1592,7 +1687,7 @@ function renderKeys() {
   if (!body) return;
 
   if (!keys.length) {
-    body.innerHTML = '<tr><td colspan="5" class="muted">Сгенерированных ключей пока нет</td></tr>';
+    body.innerHTML = '<tr><td colspan="6" class="muted">Сгенерированных ключей пока нет</td></tr>';
     return;
   }
 
@@ -1610,9 +1705,24 @@ function renderKeys() {
     const tariff = k.days ? `${k.days} дней` : 'Сброс HWID';
     const priceText = k.price ? rubles(k.price) : '0 ₽';
 
+    // Срок действия: от активации (если ключ уже использован) или от создания
+    // createdAt/activatedAt бывают и числом (Date.now()), и ISO-строкой
+    const rawExpiryBase = k.activatedAt || k.createdAt || '';
+    const expiryBase = typeof rawExpiryBase === 'number' ? rawExpiryBase : Date.parse(rawExpiryBase);
+    const expiryMs = k.days && Number.isFinite(expiryBase) ? expiryBase + k.days * 86400000 : 0;
+    let expiryHtml = '<span class="muted">—</span>';
+    if (expiryMs) {
+      const left = Math.max(0, Math.ceil((expiryMs - Date.now()) / 86400000));
+      const word = pluralDays(left);
+      expiryHtml = '<span class="expiry-date"><b>' + esc(new Date(expiryMs).toLocaleDateString('ru-RU')) + '</b>' +
+        '<small class="' + (left > 0 ? (left <= 3 ? 'is-soon' : '') : 'is-over') + '">' +
+        (left > 0 ? 'через ' + left + ' ' + word : 'срок истёк') + '</small></span>';
+    }
+
     return `<tr>
       <td><span class="promo-badge" style="font-size:11px">${esc(k.code)}</span><b style="display:block;margin-top:6px;font-size:11px">${esc(k.name || 'Без названия')}</b></td>
       <td><b>${esc(tariff)}</b></td>
+      <td>${expiryHtml}</td>
       <td>${esc(priceText)}</td>
       <td>${statusHtml}</td>
       <td>
