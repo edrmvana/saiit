@@ -14,6 +14,8 @@
  * Команды:
  *   node server.js serve
  *   node server.js adduser <логин> <пароль> [ГГГГ-ММ-ДД]
+ *   node server.js deluser <логин>
+ *   node server.js users
  *   node server.js passwd  <логин> <пароль>
  *   node server.js extend  <логин> <дней>
  *   node server.js ban     <логин> [0|1]
@@ -168,6 +170,23 @@ function cli(args) {
     return;
   }
 
+  if (command === 'deluser') {
+    const user = findUser(db, args[1]);
+    if (!user) return console.log('Пользователь не найден.');
+    db.users = db.users.filter(item => item !== user);
+    saveDb(db);
+    console.log(`Пользователь ${user.nick} удалён.`);
+    return;
+  }
+
+  if (command === 'users') {
+    if (!db.users.length) return console.log('Пользователей нет.');
+    for (const user of db.users) {
+      console.log(`${user.nick}\t${isoDate(user.until)}\t${user.banned ? 'заблокирован' : 'активен'}`);
+    }
+    return;
+  }
+
   if (command === 'passwd') {
     const user = findUser(db, args[1]);
     if (!user) return console.log('Пользователь не найден.');
@@ -232,7 +251,7 @@ function cli(args) {
     return;
   }
 
-  console.log('Неизвестная команда. Доступно: serve, adduser, passwd, extend, ban, setbuild, news, addnews.');
+  console.log('Неизвестная команда. Доступно: serve, adduser, deluser, users, passwd, extend, ban, setbuild, news, addnews.');
 }
 
 /* --------------------------------------------------------------- HTTP */

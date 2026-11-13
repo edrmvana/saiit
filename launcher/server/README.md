@@ -27,6 +27,8 @@ node server.js serve
 |---|---|
 | `node server.js serve` | запустить сервер |
 | `node server.js adduser <логин> <пароль> [ГГГГ-ММ-ДД]` | создать аккаунт (по умолчанию +30 дней) |
+| `node server.js deluser <логин>` | удалить аккаунт |
+| `node server.js users` | список аккаунтов и сроков |
 | `node server.js passwd <логин> <пароль>` | сменить пароль |
 | `node server.js extend <логин> <дней>` | продлить подписку |
 | `node server.js ban <логин> [0\|1]` | заблокировать / разблокировать |
