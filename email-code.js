@@ -112,7 +112,12 @@
 
     if (endpoint()) {
       try {
-        const reply = await post('/api/email/code', { login: nick, email: mail, purpose: kind });
+        // Подтверждение почты при регистрации не требует аккаунта на сервере:
+        // сервер отправляет код на адрес и не заводит там пользователя.
+        const payload = kind === 'reset'
+          ? { login: nick, email: mail, purpose: kind }
+          : { email: mail, purpose: 'register' };
+        const reply = await post('/api/email/code', payload);
         if (!reply.ok) return { ok: false, retry: Number(reply.data.retry || 0), error: reply.error };
         const expiresAt = Date.parse(reply.data.expires) || now + TTL_MS;
         const record = {
@@ -122,7 +127,8 @@
           sentAt: now,
           expiresAt,
           attempts: 0,
-          delivery: reply.data.delivery || 'smtp'
+          delivery: reply.data.delivery || 'smtp',
+          signup: reply.data.signup === '1'
         };
         const all = readJSON(CODES_KEY, {});
         all[key] = record;
@@ -160,12 +166,9 @@
 
     if (endpoint() && record && record.delivery !== 'demo') {
       try {
-        const reply = await post('/api/email/verify', {
-          login: nick,
-          code,
-          purpose: kind,
-          newPassword: newPassword || ''
-        });
+        const reply = await post('/api/email/verify', record.signup
+          ? { email: record.email, code }
+          : { login: nick, code, purpose: kind, newPassword: newPassword || '' });
         if (!reply.ok) return { ok: false, error: reply.error, left: Number(reply.data.left || 0) };
         delete all[key];
         writeJSON(CODES_KEY, all);
@@ -228,6 +231,7 @@
       '</div>',
       '<div id="nc-mail-step-code" class="nc-mail-step" hidden>',
       '<p class="nc-mail-sent">Код отправлен на <b id="nc-mail-target"></b></p>',
+      '<p class="nc-mail-demo" id="nc-mail-demo-note" hidden>Демо-режим: письмо не уходит в интернет — код показан в окне «Письмо».</p>',
       '<div class="nc-mail-digits" id="nc-mail-digits">',
       Array.from({ length: DIGITS }).map((item, index) =>
         '<input inputmode="numeric" maxlength="1" autocomplete="one-time-code" aria-label="Цифра ' + (index + 1) + '">'
@@ -329,6 +333,7 @@
       target: modal.querySelector('#nc-mail-target'),
       digits: Array.from(modal.querySelectorAll('#nc-mail-digits input')),
       passwordWrap: modal.querySelector('#nc-mail-password-wrap'),
+      demoNote: modal.querySelector('#nc-mail-demo-note'),
       password: modal.querySelector('#nc-mail-password'),
       error: modal.querySelector('#nc-mail-error'),
       timer: modal.querySelector('#nc-mail-timer'),
@@ -397,6 +402,7 @@
     ui.digits.forEach(input => { input.value = ''; });
     startTimer();
     setTimeout(() => ui.digits[0].focus(), 80);
+    ui.demoNote.hidden = !result.demo;
     if (result.demo) {
       ui.inbox.hidden = false;
       setTimeout(() => openInbox(result.code), 350);

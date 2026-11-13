@@ -30,14 +30,30 @@ const crypto = require('crypto');
 const OUTBOX_DIR = path.join(__dirname, 'private', 'outbox');
 
 function config() {
-  const secure = process.env.SMTP_SECURE === '1';
+  const service = String(process.env.SMTP_SERVICE || '').trim().toLowerCase();
+  let secure = process.env.SMTP_SECURE === '1';
+  let host = String(process.env.SMTP_HOST || '').trim();
+  let port = Number(process.env.SMTP_PORT || 0);
+  if (service === 'gmail' || service === 'google') {
+    host = host || 'smtp.gmail.com';
+    port = port || 465;
+    if (process.env.SMTP_SECURE === undefined) secure = true;
+  }
+  // Пароль приложения Google показывают группами по 4 символа: "abcd efgh ijkl mnop".
+  // Пробелы в него не входят — если пользователь скопировал пароль как есть, убираем их.
+  const rawPass = String(process.env.SMTP_PASS || '');
+  const appPassword = /^([A-Za-z0-9]{4}\s){3}[A-Za-z0-9]{4}$/.test(rawPass.trim())
+    ? rawPass.replace(/\s+/g, '')
+    : rawPass;
   return {
-    host: String(process.env.SMTP_HOST || '').trim(),
-    port: Number(process.env.SMTP_PORT || 0) || (secure ? 465 : 587),
+    host,
+    service,
+    port: port || (secure ? 465 : 587),
     secure,
     starttls: process.env.SMTP_STARTTLS !== '0',
+    debug: process.env.SMTP_DEBUG === '1',
     user: String(process.env.SMTP_USER || ''),
-    pass: String(process.env.SMTP_PASS || ''),
+    pass: appPassword,
     from: String(process.env.MAIL_FROM || process.env.SMTP_USER || '').trim(),
     fromName: String(process.env.MAIL_FROM_NAME || 'NOCTURNE'),
     timeout: Number(process.env.SMTP_TIMEOUT || 15000)
@@ -53,8 +69,10 @@ function describe() {
   const cfg = config();
   return {
     configured: configured(),
+    service: cfg.service,
     host: cfg.host,
     port: cfg.port,
+    debug: cfg.debug,
     secure: cfg.secure,
     starttls: cfg.starttls,
     from: cfg.from,
@@ -108,6 +126,16 @@ function createChannel(socket, timeout) {
     return null;
   }
 
+  const debug = config().debug;
+
+  function debugLog(direction, text) {
+    if (!debug) return;
+    const safe = /^AUTH\b/i.test(text) || /^[A-Za-z0-9+/=]{8,}$/.test(text)
+      ? text.replace(/\S{12,}$/, '<скрыто>')
+      : text;
+    console.log('[smtp] ' + direction + ' ' + safe);
+  }
+
   function onData(chunk) {
     buffer += chunk.toString('utf8');
     let index;
@@ -115,6 +143,7 @@ function createChannel(socket, timeout) {
       let line = buffer.slice(0, index);
       buffer = buffer.slice(index + 1);
       if (line.endsWith('\r')) line = line.slice(0, -1);
+      debugLog('<<', line);
       lines.push(line);
     }
     pump();
@@ -158,6 +187,7 @@ function createChannel(socket, timeout) {
 
   function write(line) {
     if (failure) throw failure;
+    debugLog('>>', line);
     current.write(line + '\r\n');
   }
 
@@ -182,7 +212,7 @@ function upgrade(socket, cfg) {
   return new Promise((resolve, reject) => {
     const secureSocket = tls.connect({
       socket,
-      servername: cfg.host,
+      servername: net.isIP(cfg.host) ? undefined : cfg.host,
       rejectUnauthorized: process.env.SMTP_ALLOW_SELF_SIGNED === '1' ? false : true
     }, () => resolve(secureSocket));
     secureSocket.once('error', reject);
@@ -193,7 +223,12 @@ function upgrade(socket, cfg) {
 function connect(cfg) {
   return new Promise((resolve, reject) => {
     const socket = cfg.secure
-      ? tls.connect({ host: cfg.host, port: cfg.port, servername: cfg.host })
+      ? tls.connect({
+        host: cfg.host,
+        port: cfg.port,
+        servername: net.isIP(cfg.host) ? undefined : cfg.host,
+        rejectUnauthorized: process.env.SMTP_ALLOW_SELF_SIGNED === '1' ? false : true
+      })
       : net.connect({ host: cfg.host, port: cfg.port });
     const timer = setTimeout(() => {
       socket.destroy();

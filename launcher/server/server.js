@@ -53,6 +53,8 @@ const CODE_ATTEMPTS = 5;                 // попыток ввода на од�
 const sessions = new Map(); // token -> { nick, expires }
 const tickets = new Map();  // ticket -> { file, name, expires }
 const attempts = new Map(); // ip -> { count, reset }
+const signupHits = new Map(); // ip -> { count, reset } для писем без аккаунта
+const emailHits = new Map();  // email -> { count, reset }
 
 function sha256(text) {
   return crypto.createHash('sha256').update(text, 'utf8').digest('hex');
@@ -92,6 +94,7 @@ function defaultDb() {
     ],
     users: [],
     emailCodes: {},
+    emailSignups: {},
     build: { name: 'cheat.exe', file: '', sha256: '', size: 0, version: '1.0.0' }
   };
 }
@@ -103,6 +106,7 @@ function loadDb() {
     if (!db.build) db.build = { name: 'cheat.exe', file: '', sha256: '', size: 0, version: '1.0.0' };
     if (!Array.isArray(db.news)) db.news = [];
     if (!db.emailCodes || typeof db.emailCodes !== 'object') db.emailCodes = {};
+    if (!db.emailSignups || typeof db.emailSignups !== 'object') db.emailSignups = {};
     return db;
   } catch (error) {
     const db = defaultDb();
@@ -133,6 +137,7 @@ function currentDb(fallback) {
       if (!data.build) data.build = { name: 'cheat.exe', file: '', sha256: '', size: 0, version: '1.0.0' };
       if (!Array.isArray(data.news)) data.news = [];
       if (!data.emailCodes || typeof data.emailCodes !== 'object') data.emailCodes = {};
+      if (!data.emailSignups || typeof data.emailSignups !== 'object') data.emailSignups = {};
       return data;
     }
   } catch (error) { /* оставляем последнюю известную базу */ }
@@ -199,6 +204,32 @@ function emailLetter(nick, code, purpose) {
     '</div></div>'
   ].join('');
   return { subject: title, text, html };
+}
+
+function signupAllowed() {
+  return process.env.MAIL_ALLOW_SIGNUP !== '0';
+}
+
+function signupRateLimited(ip) {
+  const now = Date.now();
+  const state = signupHits.get(ip);
+  if (!state || now > state.reset) {
+    signupHits.set(ip, { count: 1, reset: now + 60 * 60 * 1000 });
+    return false;
+  }
+  state.count += 1;
+  return state.count > 5;
+}
+
+function emailRateLimited(email) {
+  const now = Date.now();
+  const state = emailHits.get(email);
+  if (!state || now > state.reset) {
+    emailHits.set(email, { count: 1, reset: now + 60 * 60 * 1000 });
+    return false;
+  }
+  state.count += 1;
+  return state.count > 5;
 }
 
 function applyCors(res) {
@@ -354,6 +385,8 @@ function cli(args) {
     console.log('  secure:   ' + (info.secure ? 'да (TLS сразу)' : 'нет (STARTTLS)'));
     console.log('  starttls: ' + (info.starttls ? 'да' : 'нет'));
     console.log('  from:     ' + (info.from || '—'));
+    console.log('  debug:    ' + (info.debug ? 'включён (SMTP_DEBUG=1)' : 'выключен'));
+    console.log('  письма без аккаунта: ' + (signupAllowed() ? 'разрешены (MAIL_ALLOW_SIGNUP=0 отключает)' : 'отключены'));
     return;
   }
 
@@ -467,6 +500,75 @@ function sessionFor(req) {
   return session;
 }
 
+async function handleSignupCode(db, params, ip, res) {
+  if (!signupAllowed()) return sendText(res, 200, 'ERR\nmessage=Подтверждение почты без аккаунта отключено на сервере.');
+  const email = normEmail(params.email);
+  if (!validEmail(email)) return sendText(res, 200, 'ERR\nmessage=Введите корректный e-mail.');
+  const key = 'email:' + email;
+  const previous = db.emailSignups[key];
+  if (previous && Date.now() - Number(previous.sentAt || 0) < CODE_COOLDOWN) {
+    const retry = Math.max(1, Math.ceil((CODE_COOLDOWN - (Date.now() - Number(previous.sentAt || 0))) / 1000));
+    return sendText(res, 200, ['ERR', 'retry=' + retry, 'message=Код уже отправлен. Повторите через ' + retry + ' с.'].join('\n'));
+  }
+  if (signupRateLimited(ip) || emailRateLimited(email)) {
+    return sendText(res, 200, 'ERR\nmessage=Слишком много писем на этот адрес. Попробуйте через час.');
+  }
+  const code = String(crypto.randomInt(0, 1000000)).padStart(6, '0');
+  const salt = randomHex(8);
+  const expiresAt = Date.now() + CODE_TTL;
+  db.emailSignups[key] = {
+    email,
+    salt,
+    hash: sha256(salt + ':' + code),
+    sentAt: Date.now(),
+    expiresAt,
+    attempts: 0
+  };
+  saveDb(db);
+  const letter = emailLetter(email.split('@')[0], code, 'verify');
+  try {
+    const result = await mailer.deliver({ to: email, ...letter });
+    if (result.delivery !== 'smtp') console.log('[mail] код для ' + email + ': ' + code + ' (SMTP не настроен, письмо в ' + result.file + ')');
+    return sendText(res, 200, [
+      'OK',
+      'signup=1',
+      'delivery=' + result.delivery,
+      'email=' + email,
+      'expires=' + isoDate(expiresAt),
+      'ttl=' + Math.round(CODE_TTL / 1000),
+      'cooldown=' + Math.round(CODE_COOLDOWN / 1000)
+    ].join('\n'));
+  } catch (error) {
+    delete db.emailSignups[key];
+    saveDb(db);
+    return sendText(res, 200, 'ERR\nmessage=Не удалось отправить письмо: ' + String(error.message || error).replace(/[\r\n]+/g, ' '));
+  }
+}
+
+async function handleSignupVerify(db, params, res) {
+  const email = normEmail(params.email);
+  const key = 'email:' + email;
+  const record = db.emailSignups[key];
+  if (!record) return sendText(res, 200, 'ERR\nmessage=Код не запрашивался или уже использован.');
+  if (Date.now() > Number(record.expiresAt || 0)) {
+    delete db.emailSignups[key];
+    saveDb(db);
+    return sendText(res, 200, 'ERR\nmessage=Код истёк. Запросите новый.');
+  }
+  if (Number(record.attempts || 0) >= CODE_ATTEMPTS) {
+    return sendText(res, 200, 'ERR\nmessage=Слишком много неверных попыток. Запросите новый код.');
+  }
+  if (!safeEqual(sha256(record.salt + ':' + params.code), record.hash)) {
+    record.attempts = Number(record.attempts || 0) + 1;
+    saveDb(db);
+    const left = Math.max(0, CODE_ATTEMPTS - record.attempts);
+    return sendText(res, 200, ['ERR', 'code=wrong', 'left=' + left, 'message=Неверный код. Осталось попыток: ' + left + '.'].join('\n'));
+  }
+  delete db.emailSignups[key];
+  saveDb(db);
+  return sendText(res, 200, ['OK', 'verified=1', 'signup=1', 'email=' + record.email, 'passwordChanged=0'].join('\n'));
+}
+
 function servesStatic() {
   return false;
 }
@@ -566,6 +668,9 @@ function serve(initialDb) {
     if (req.method === 'POST' && url.pathname === '/api/email/code') {
       if (rateLimited(ip)) return sendText(res, 429, 'ERR\nmessage=Слишком много попыток. Подождите минуту.');
       readParams(req).then(async params => {
+        if (!params.login) {
+          return handleSignupCode(db, params, ip, res).catch(() => sendText(res, 400, 'ERR\nmessage=Некорректный запрос.'));
+        }
         const user = findUser(db, params.login);
         if (!user) return sendText(res, 200, 'ERR\nmessage=Аккаунт не найден.');
         if (user.banned) return sendText(res, 200, 'ERR\nmessage=Аккаунт заблокирован.');
@@ -619,6 +724,9 @@ function serve(initialDb) {
 
     if (req.method === 'POST' && url.pathname === '/api/email/verify') {
       readParams(req).then(params => {
+        if (!params.login) {
+          return handleSignupVerify(db, params, res).catch(() => sendText(res, 400, 'ERR\nmessage=Некорректный запрос.'));
+        }
         const user = findUser(db, params.login);
         if (!user) return sendText(res, 200, 'ERR\nmessage=Аккаунт не найден.');
         const key = String(user.nick).toLowerCase();

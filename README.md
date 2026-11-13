@@ -51,14 +51,37 @@ NOCTURNE — статический веб-проект на HTML, CSS и JavaSc
   настоящее письмо так не отправить.
 - **С сервером.** В `launcher/server` есть отправка через SMTP без внешних зависимостей
   (`mailer.js`) и API `/api/email/code` + `/api/email/verify`. Сервер генерирует код,
-  хранит только его хеш и отправляет письмо. Включите его и укажите адрес сервера
-  перед подключением `email-code.js`:
+  хранит только его хеш и отправляет письмо. Регистрация на сайте не требует аккаунта
+  на сервере: сервер просто отправляет письмо на указанный адрес (`signup=1`).
+  Включите его и укажите адрес сервера перед подключением `email-code.js`:
 
   ```html
   <script>window.NC_MAIL_ENDPOINT = 'https://license.example.com';</script>
   ```
 
   Тогда код отправляется на реальную почту, а окно ввода работает так же.
+
+### Почта на Gmail не приходит — что проверить
+
+1. В демо-режиме (без `NC_MAIL_ENDPOINT`) письмо **не отправляется вообще**: код
+   показывается в окне «Письмо (демо)». Это главная причина «не приходит на Gmail».
+2. Для Gmail нужен **пароль приложения** (`myaccount.google.com/apppasswords`, требуется
+   2FA), обычный пароль не подойдёт. Быстрый старт:
+
+   ```bat
+   set SMTP_SERVICE=gmail
+   set SMTP_USER=you@gmail.com
+   set SMTP_PASS=abcd efgh ijkl mnop
+   set MAIL_FROM=you@gmail.com
+   node server.js emailtest you@gmail.com
+   node server.js serve
+   ```
+
+3. Проверьте ответ SMTP: `node server.js mailstatus`, при ошибке — `set SMTP_DEBUG=1`.
+4. `MAIL_FROM` должен совпадать с ящиком, иначе Gmail подменит отправителя.
+5. Посмотрите «Спам» — первые письма с нового сервера часто попадают туда.
+6. Если сайт открыт по HTTPS, `NC_MAIL_ENDPOINT` тоже должен быть HTTPS, иначе браузер
+   заблокирует запрос (mixed content).
 
 Проверка сервера: `node server.js mailstatus`, `node server.js emailtest вы@example.com`.
 Подробности — в `launcher/server/README.md`.

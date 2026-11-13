@@ -196,6 +196,17 @@ body.nc-mail-lock {
   caret-color: #d9c2ff;
 }
 
+.nc-mail-demo {
+  margin: 0 0 6px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  border: 1px dashed rgba(255, 176, 138, .45);
+  background: rgba(255, 176, 138, .08);
+  color: #ffc9a8;
+  font-size: 11.5px;
+  line-height: 1.45;
+}
+
 .nc-mail-timer {
   min-height: 18px;
   font-size: 12px;
