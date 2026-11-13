@@ -62,3 +62,18 @@
   font-size: 11px;
   white-space: nowrap;
 }
+
+/* Легенда ролей в чате — видна игрокам */
+.chat-roles-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 12px;
+}
+
+.chat-roles-label {
+  font-size: 10px;
+  color: #8d7a9d;
+  margin-right: 2px;
+}

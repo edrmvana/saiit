@@ -459,8 +459,8 @@ function save(a){
  accounts();if(accountReadState.error)throw new Error(accountReadState.error);
  adminStorage.setItem('nc_accounts',JSON.stringify(a));render();adminExtras();
 }
-function safeMemberBadge(a){try{const media=window.chatMediaRole?chatMediaRole(a):'';if(media&&window.mediaChatBadge)return mediaChatBadge(media);return roleBadgeHTML(equippedRoleOf(a));}catch{return '';}}
-function chatBadgeFor(m,members){if(m.staff&&window.staffChatBadge)return staffChatBadge(m.role);return safeMemberBadge(members.get(m.nick));}
+function safeMemberBadge(a){try{const staffRole=a&&window.staffRoleForNick?staffRoleForNick(a.nick):'';if(staffRole&&window.staffChatBadge)return staffChatBadge(staffRole);const media=window.chatMediaRole?chatMediaRole(a):'';if(media&&window.mediaChatBadge)return mediaChatBadge(media);return roleBadgeHTML(equippedRoleOf(a));}catch{return '';}}
+function chatBadgeFor(m,members){if(m.staff&&window.staffChatBadge)return staffChatBadge(m.role);const staffRole=window.staffRoleForNick?staffRoleForNick(m.nick):'';if(staffRole&&window.staffChatBadge)return staffChatBadge(staffRole);return safeMemberBadge(members.get(m.nick));}
 function showAccountReadStatus(){
  const state=accountReadState,count=document.getElementById('players-total'),status=document.getElementById('accounts-status'),details=document.getElementById('storage-diagnostics');
  if(count)count.textContent=String(state.count);

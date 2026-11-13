@@ -79,12 +79,20 @@ function saveAvatarFile(){const input=document.getElementById('avatar-file'),fil
 function sendChat(){const a=currentAccount(),i=document.getElementById('chat-input');if(!a||!i||!i.value.trim())return;if(a.blocked)return showNC('Аккаунт заблокирован','error');const c=JSON.parse(ncStorage.getItem('nc_chat')||'[]');c.push({nick:a.nick,text:i.value.trim().slice(0,1000),time:Date.now()});ncStorage.setItem('nc_chat',JSON.stringify(c));i.value='';renderChat();}
 function renderChat(){
  const el=document.getElementById('chat-messages');if(!el)return;
+ const legend=document.getElementById('chat-roles-legend');
+ if(legend&&!legend.dataset.built&&window.staffChatBadge&&window.mediaChatBadge){
+   legend.innerHTML='<span class="chat-roles-label">Роли в чате:</span>'+
+     ['junior_moderator','moderator','admin','senior_admin','owner'].map(staffChatBadge).join('')+
+     ['youtube','tiktok'].map(mediaChatBadge).join('');
+   legend.dataset.built='1';
+ }
  const messages=JSON.parse(ncStorage.getItem('nc_chat')||'[]');
  const members=new Map(getAccounts().map(a=>[a.nick,a]));
  el.innerHTML=messages.slice(-50).map(m=>{
   const member=members.get(m.nick);
-  const media=!m.staff&&window.chatMediaRole?chatMediaRole(member):'';
-  const badge=m.staff&&window.staffChatBadge?staffChatBadge(m.role):(media&&window.mediaChatBadge?mediaChatBadge(media):roleBadgeHTML(equippedRoleOf(member)));
+  const staffRole=m.staff?m.role:(window.staffRoleForNick?staffRoleForNick(m.nick):'');
+  const media=!staffRole&&window.chatMediaRole?chatMediaRole(member):'';
+  const badge=staffRole&&window.staffChatBadge?staffChatBadge(staffRole):(media&&window.mediaChatBadge?mediaChatBadge(media):roleBadgeHTML(equippedRoleOf(member)));
   const timestamp=Number(m.time);const time=Number.isFinite(timestamp)?new Date(timestamp).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}):'';
   return `<div class="chat-msg"><div class="chat-msg-header"><b>${escapeHTML(m.nick)}</b>${badge}<time>${escapeHTML(time)}</time></div><span class="chat-message-text">${escapeHTML(m.text)}</span></div>`;
  }).join('')||'<p class="chat-empty">Сообщений пока нет. Это локальный демо-чат.</p>';
@@ -169,7 +177,7 @@ function updateProfile(){
  renderUserPurchases();
  if(typeof refreshDashboard==='function')refreshDashboard();
 }
-window.addEventListener('storage',e=>{if(e.key==='nc_tickets')renderTickets();});
+window.addEventListener('storage',e=>{if(e.key==='nc_tickets')renderTickets();if(e.key==='nc_chat'||e.key==='nc_accounts'||e.key==='nc_staff_keys')renderChat();});
 
 function renderUserPurchases(){
   const session = ncStorage.getItem('nc_session');

@@ -37,6 +37,24 @@
     return account && MEDIA[account.mediaRole] ? account.mediaRole : '';
   };
 
+  /* Роль сотрудника по нику: ключ staff-доступа или активная сессия панели.
+     Нужна, чтобы игрок видел роль модератора/админа в общем чате. */
+  window.staffRoleForNick = function (nick) {
+    if (!nick) return '';
+    try {
+      var keys = JSON.parse(window.localStorage.getItem('nc_staff_keys') || '[]');
+      if (Array.isArray(keys)) {
+        for (var i = 0; i < keys.length; i++) {
+          var key = keys[i];
+          if (key && key.usedBy === nick && !key.revoked && STAFF[key.role]) return key.role;
+        }
+      }
+      var session = JSON.parse(window.localStorage.getItem('nc_staff_session') || 'null');
+      if (session && session.name === nick && STAFF[session.role]) return session.role;
+    } catch (e) { /* приватный режим — роли просто не покажем */ }
+    return '';
+  };
+
   window.CHAT_STAFF_ROLES = STAFF;
   window.CHAT_MEDIA_ROLES = MEDIA;
 })();
