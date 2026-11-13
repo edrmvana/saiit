@@ -1,0 +1,100 @@
+/* ==========================================================================
+   NOCTURNE — Плавное появление элементов при скролле вниз (Scroll Reveal)
+   Использует независимые CSS-свойства translate / scale, чтобы не конфликтовать
+   с hover-трансформациями карточек, кнопок и декоративных элементов.
+   ========================================================================== */
+
+:root {
+  --sr-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --sr-duration: 0.78s;
+  --sr-opacity-duration: 0.68s;
+  --sr-blur-duration: 0.56s;
+  --sr-y: 28px;
+  --sr-scale: 0.985;
+  --sr-blur: 3px;
+}
+
+/* Скрытое стартовое состояние (активно только при включённом JS и без sr-done) */
+html.sr-ready .scroll-reveal:not(#account):not(.sr-done) {
+  opacity: 0;
+  translate: 0 var(--sr-y, 28px);
+  scale: var(--sr-scale, 0.985);
+  filter: blur(var(--sr-blur, 3px));
+  transition:
+    opacity var(--sr-opacity-duration) var(--sr-ease) var(--sr-delay, 0ms),
+    translate var(--sr-duration) var(--sr-ease) var(--sr-delay, 0ms),
+    scale var(--sr-duration) var(--sr-ease) var(--sr-delay, 0ms),
+    filter var(--sr-blur-duration) var(--sr-ease) var(--sr-delay, 0ms);
+  will-change: opacity, translate, scale, filter;
+}
+
+/* Активное состояние — плавный подъём и проявление из глубины */
+html.sr-ready .scroll-reveal.is-visible:not(#account):not(.sr-done) {
+  opacity: 1;
+  translate: 0 0;
+  scale: 1;
+  filter: blur(0px);
+}
+
+/* Мгновенный сброс без анимации, когда элемент полностью ушёл за нижний край экрана */
+html.sr-ready .scroll-reveal.sr-resetting {
+  transition: none !important;
+}
+
+/* Тонкая настройка амплитуды под тип блока */
+.page-heading.scroll-reveal {
+  --sr-y: 18px;
+  --sr-scale: 0.992;
+  --sr-blur: 2px;
+}
+
+.hero.scroll-reveal {
+  --sr-y: 24px;
+  --sr-scale: 0.988;
+  --sr-blur: 3px;
+}
+
+.benefits > div.scroll-reveal {
+  --sr-y: 24px;
+  --sr-scale: 0.985;
+}
+
+.section-heading.scroll-reveal,
+.catalog-toolbar.scroll-reveal {
+  --sr-y: 22px;
+  --sr-scale: 0.99;
+  --sr-blur: 2.5px;
+}
+
+.product-card.scroll-reveal {
+  --sr-y: 34px;
+  --sr-scale: 0.978;
+  --sr-blur: 3.5px;
+}
+
+.account-card .card.scroll-reveal,
+.account-card .cabinet-nav.scroll-reveal,
+.panel.scroll-reveal,
+.support-strip.scroll-reveal {
+  --sr-y: 26px;
+  --sr-scale: 0.986;
+}
+
+.wardrobe-item.scroll-reveal {
+  --sr-y: 22px;
+  --sr-scale: 0.982;
+}
+
+/* Уважение системной настройки уменьшения движения */
+@media (prefers-reduced-motion: reduce) {
+  html.sr-ready .scroll-reveal,
+  html.sr-ready .scroll-reveal:not(#account):not(.sr-done),
+  html.sr-ready .scroll-reveal.is-visible:not(#account):not(.sr-done) {
+    opacity: 1 !important;
+    translate: none !important;
+    scale: none !important;
+    filter: none !important;
+    transition: none !important;
+    will-change: auto !important;
+  }
+}

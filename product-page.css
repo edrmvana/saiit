@@ -1,0 +1,379 @@
+/* NOCTURNE — расширенная страница продукта в модальном окне */
+
+.info-modal.np-wide .info-window{
+  width:min(1180px,100%);
+  padding:30px;
+  background:radial-gradient(ellipse at 100% 0,#38214666,transparent 60%),#0e0c15;
+  border-color:#2e2740;
+}
+.info-modal.np-wide .info-window > h2{
+  font-size:26px;letter-spacing:-.6px;margin:2px 0 20px;
+}
+.info-modal.np-wide .dialog-symbol{margin-bottom:6px;}
+
+/* ---------- Компактное окно оформления (косметика, сервис, сброс HWID) ---------- */
+.info-modal.np-compact .info-window{
+  width:min(490px, 100%);
+  padding:24px 26px;
+  background:radial-gradient(ellipse at 100% 0,#38214666,transparent 65%),#0e0c15;
+  border-color:#342948;
+  border-radius:18px;
+}
+.info-modal.np-compact .info-window > h2{
+  font-size:18px;letter-spacing:-.4px;margin:0 0 14px;color:#f3ecfb;
+}
+.info-modal.np-compact .dialog-symbol{margin-bottom:4px;font-size:24px;}
+
+.np-compact-order{
+  border:1px solid #282137;border-radius:14px;background:#121019;
+  padding:18px 20px;
+}
+.np-compact-preview{
+  display:flex;align-items:center;gap:14px;padding:12px 14px;
+  border:1px solid #2d223c;border-radius:12px;background:#161222;
+  margin-bottom:14px;
+}
+.np-compact-icon{
+  width:52px;height:52px;border-radius:12px;
+  background:linear-gradient(135deg,#2e1b42,#1a1226);
+  border:1px solid #573a77;display:grid;place-items:center;
+  flex-shrink:0;font-size:26px;color:#cba6f7;overflow:hidden;
+}
+.np-compact-icon img{
+  width:100%;height:100%;object-fit:cover;
+}
+.np-compact-meta{min-width:0;flex:1;}
+.np-compact-badge{
+  font-size:9.5px;letter-spacing:.12em;font-weight:700;color:#ba8cf7;
+  text-transform:uppercase;display:block;margin-bottom:2px;
+}
+.np-compact-title{
+  font-size:16.5px;font-weight:700;color:#f3ecfb;margin:0 0 3px;
+}
+.np-compact-desc{
+  font-size:11px;color:#9b8ea9;margin:0;line-height:1.45;
+}
+.np-compact-pills{
+  display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px;
+}
+.np-compact-pill{
+  font-size:10.5px;padding:3.5px 8.5px;border-radius:6px;
+  background:#1a1426;border:1px solid #332646;color:#c1b1d8;
+  display:inline-flex;align-items:center;gap:4px;
+}
+.np-compact-pill svg{
+  width:12px;height:12px;color:#a882e8;flex-shrink:0;
+}
+
+/* ---------- сетка ---------- */
+.np-layout{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:20px;align-items:start;}
+.np-col-main{display:flex;flex-direction:column;gap:20px;min-width:0;}
+.np-col-side{min-width:0;}
+
+/* ---------- карточки ---------- */
+.np-card{
+  border:1px solid #262231;border-radius:14px;background:#121019;
+  padding:22px 24px;
+  transition:border-color .35s var(--ease-soft),box-shadow .35s var(--ease-soft),transform .35s var(--ease-soft);
+}
+.np-card:hover{border-color:#3a3150;box-shadow:0 18px 40px -30px #a674ff66;}
+
+.np-kicker{
+  display:flex;align-items:center;gap:8px;
+  font-size:10px;letter-spacing:.14em;font-weight:600;color:#a884d8;margin:0 0 14px;
+}
+.np-kicker svg{width:14px;height:14px;}
+
+.np-desc{font-size:12.5px;line-height:1.85;color:#b3aabf;margin:0 0 18px;}
+
+/* ---------- список возможностей ---------- */
+.np-features{
+  list-style:none;margin:0;padding:0;
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 20px;
+}
+.np-features li{display:flex;align-items:center;gap:10px;font-size:12px;color:#cdc4d8;}
+.np-features svg{width:15px;height:15px;color:#a674ff;flex-shrink:0;transition:transform .3s var(--ease-pop);}
+.np-features li:hover svg{transform:scale(1.18);}
+
+.np-divider{height:1px;background:#242030;margin:20px 0 16px;}
+.np-support-label{font-size:11px;color:#6f687c;margin:0 0 8px;}
+.np-support-value{font-size:12px;color:#cdc4d8;margin:0;}
+
+/* ---------- системные требования ---------- */
+.np-specs{display:flex;flex-direction:column;gap:13px;}
+.np-spec{display:flex;align-items:baseline;justify-content:space-between;gap:16px;font-size:12px;}
+.np-spec-name{display:flex;align-items:center;gap:9px;color:#8e869c;}
+.np-spec-name i{width:5px;height:5px;border-radius:50%;background:#7a5aa8;flex-shrink:0;}
+.np-spec-value{color:#e2dbec;text-align:right;}
+
+/* ---------- панель оформления ---------- */
+.np-order{position:sticky;top:0;}
+.np-title{font-size:22px;font-weight:650;letter-spacing:-.5px;margin:0 0 6px;color:#f0eaf8;}
+.np-from{font-size:11px;color:#79718a;margin:0 0 20px;}
+.np-field-label{display:block;font-size:11.5px;color:#a79fb5;margin:0 0 9px;font-weight:500;}
+
+/* тарифы */
+.np-plans{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:10px 0 20px;}
+.np-plan{
+  position:relative;text-align:left;
+  border:1px solid #2b2638;border-radius:10px;background:#15121d;
+  padding:12px 14px;cursor:pointer;
+  display:flex;flex-direction:column;gap:3px;
+  transition:border-color .3s var(--ease-soft),background .3s ease,
+             transform .3s var(--ease-soft),box-shadow .3s var(--ease-soft);
+}
+.np-plan b{font-size:13px;color:#e9e2f3;font-weight:600;}
+.np-plan .np-plan-price, .np-plan>span:not(.np-plan-hit){font-size:11.5px;color:#7d7590;}
+.np-plan:hover{transform:translateY(-3px);border-color:#4a3a68;box-shadow:0 12px 24px -16px #a674ffaa;}
+.np-plan.selected{
+  border-color:#8b63cf;background:linear-gradient(140deg,#2a1c40,#1a1526);
+  box-shadow:0 0 0 1px #8b63cf40,0 14px 28px -20px #a674ffcc;
+}
+.np-plan.selected .np-plan-price, .np-plan.selected>span:not(.np-plan-hit){color:#d7c8ee;}
+.np-plan:active{transform:translateY(-1px) scale(.985);}
+.np-plan-hit,
+.np-plan .np-plan-hit,
+.np-plan.selected .np-plan-hit{
+  position:absolute;top:8px;right:9px;
+  display:inline-flex;align-items:center;justify-content:center;gap:3px;
+  font-size:9.5px !important;line-height:1;letter-spacing:.08em;font-weight:800 !important;
+  color:#ffffff !important;text-transform:uppercase;
+  background:linear-gradient(135deg,#a45cf6,#763bda) !important;
+  border:1px solid rgba(255,255,255,0.45) !important;
+  border-radius:5px;padding:3.5px 7px;
+  box-shadow:0 0 14px rgba(164,92,246,0.7), 0 2px 6px rgba(0,0,0,0.5);
+  pointer-events:none;
+  text-shadow:0 1px 2px rgba(0,0,0,0.6);
+  z-index:5;
+  opacity:1 !important;
+  visibility:visible !important;
+  transition:opacity .25s ease,transform .3s var(--ease-soft);
+}
+.np-plan-hit svg{
+  width:11px;height:11px;color:#ffd166;filter:drop-shadow(0 0 4px #ffaa00);flex-shrink:0;
+}
+/* заголовок тарифа не заезжает под бейдж */
+.np-plan:has(.np-plan-hit) b{padding-right:48px;}
+
+/* ---------- способ оплаты: кастомный выпадающий список ---------- */
+.np-pay{position:relative;margin-bottom:20px;}
+
+.np-pay-trigger{
+  width:100%;box-sizing:border-box;
+  display:flex;align-items:center;gap:11px;
+  height:48px;padding:0 12px;
+  border:1px solid #2b2638;border-radius:10px;background:#15121d;
+  color:#e6dff1;font-size:12.5px;font-family:inherit;text-align:left;cursor:pointer;
+  transition:border-color .3s ease,box-shadow .3s ease,background .3s ease;
+}
+.np-pay-trigger:hover{border-color:#4a3a68;}
+.np-pay.open .np-pay-trigger{
+  border-color:#6c4a93;background:#17131f;
+  box-shadow:0 0 0 3px #a674ff14;
+}
+.np-pay-label{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.np-pay-trigger .np-chev{
+  width:16px;height:16px;color:#7d7590;flex-shrink:0;
+  transition:transform .32s var(--ease-soft),color .3s ease;
+}
+.np-pay.open .np-pay-trigger .np-chev{transform:rotate(180deg);color:#b795e8;}
+
+/* смена подписи — мягкое проявление */
+@keyframes np-label-swap{from{opacity:0;transform:translateX(-6px);}to{opacity:1;transform:none;}}
+.np-pay-label-swap{animation:np-label-swap .3s var(--ease-soft);}
+
+/* иконка способа оплаты */
+.np-pay-icon{display:grid;place-items:center;flex-shrink:0;width:20px;height:20px;}
+.np-pay-icon svg{width:17px;height:17px;}
+
+/* сам список */
+.np-pay-list{
+  position:absolute;left:0;right:0;top:calc(100% + 8px);z-index:30;
+  display:flex;flex-direction:column;gap:2px;
+  padding:8px;
+  border:1px solid #2b2638;border-radius:12px;
+  background:#131019;
+  box-shadow:0 26px 60px -24px #000, 0 0 0 1px #ffffff05;
+  opacity:0;visibility:hidden;pointer-events:none;
+  transform:translateY(-8px) scale(.985);
+  transform-origin:top center;
+  transition:opacity .26s var(--ease-soft),transform .3s var(--ease-soft),visibility .3s;
+}
+.np-pay.open .np-pay-list{
+  opacity:1;visibility:visible;pointer-events:auto;
+  transform:none;
+}
+.np-pay.closing .np-pay-list{
+  opacity:0;transform:translateY(-6px) scale(.99);pointer-events:none;
+}
+
+/* пункты списка — выезжают слева друг за другом */
+.np-pay-option{
+  display:flex;align-items:center;gap:12px;
+  width:100%;box-sizing:border-box;
+  padding:11px 12px;border:0;border-radius:9px;background:transparent;
+  color:#cdc4d8;font-size:12.5px;font-family:inherit;text-align:left;cursor:pointer;
+  opacity:0;transform:translateX(-18px);
+  transition:background .25s ease,color .25s ease;
+}
+.np-pay.open .np-pay-option{
+  animation:np-option-in .34s var(--ease-soft) both;
+  animation-delay:calc(var(--np-i) * 42ms);
+}
+@keyframes np-option-in{
+  from{opacity:0;transform:translateX(-18px);}
+  to  {opacity:1;transform:none;}
+}
+.np-pay.closing .np-pay-option{
+  animation:np-option-out .2s var(--ease-soft) both;
+  animation-delay:calc(var(--np-i) * 16ms);
+}
+@keyframes np-option-out{
+  from{opacity:1;transform:none;}
+  to  {opacity:0;transform:translateX(-12px);}
+}
+.np-pay-option:hover{background:#1e1829;color:#f0e8fa;}
+.np-pay-option.selected{color:#f0e8fa;}
+.np-pay-option > span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+
+.np-pay-check{
+  width:16px;height:16px;color:#a674ff;flex-shrink:0;
+  opacity:0;transform:scale(.7);
+  transition:opacity .25s ease,transform .3s var(--ease-pop);
+}
+.np-pay-option.selected .np-pay-check{opacity:1;transform:none;}
+
+/* поля */
+.np-inputs{display:flex;flex-direction:column;gap:12px;margin-bottom:18px;}
+.np-input-group{display:block;min-width:0;width:100%;}
+.np-input-group input{
+  width:100%;height:46px;box-sizing:border-box;
+  background:#15121d;border:1px solid #2b2638;border-radius:10px;
+  padding:0 13px;color:#ece4f5;font-size:12.5px;font-family:inherit;
+  transition:border-color .3s ease,box-shadow .3s ease,background .3s ease;
+}
+.np-input-group input::placeholder{color:#635c73;}
+.np-input-group input:focus{
+  outline:none;border-color:#7c56a8;background:#110e1a;
+  box-shadow:0 0 0 3px #a674ff1f;
+}
+
+/* итого */
+/* Индикатор баланса */
+.np-user-balance{
+  font-size:11px;padding:9px 13px;border-radius:9px;margin:10px 0 14px;background:#13101c;border:1px solid #332644;display:flex;align-items:center;
+}
+.np-bal-ok{color:#7ee6bb;}
+.np-bal-ok b{color:#a8f5d4;}
+.np-bal-warn{color:#f59eaf;}
+.np-bal-warn b{color:#ffaebb;}
+.np-bal-login{color:#b39ecc;}
+.np-bal-login a{color:#cba6f7;text-decoration:underline;cursor:pointer;}
+
+.np-total{
+  display:flex;align-items:center;justify-content:space-between;gap:14px;
+  border:1px solid #262131;border-radius:10px;background:#131019;
+  padding:16px 18px;margin-bottom:14px;
+}
+.np-total span{font-size:12.5px;color:#9a92a9;}
+.np-total b{font-size:19px;font-weight:650;color:#f2ebfb;transition:color .3s ease;}
+
+/* кнопка */
+.np-submit{
+  width:100%;display:flex;align-items:center;justify-content:center;gap:10px;
+  border:1px solid #b995f367;border-radius:10px;
+  background:linear-gradient(115deg,#a47af0,#8151d4);
+  color:#fff;font-size:13px;font-weight:600;font-family:inherit;
+  padding:15px 18px;cursor:pointer;
+  box-shadow:0 8px 26px -12px #8450cdaa;
+  transition:transform .3s var(--ease-pop),background .3s ease,box-shadow .3s ease;
+}
+.np-submit svg{width:16px;height:16px;transition:transform .3s var(--ease-soft);}
+.np-submit:hover{
+  transform:translateY(-3px);
+  background:linear-gradient(115deg,#b792ff,#9364e6);
+  box-shadow:0 16px 32px -14px #a674ffcc;
+}
+.np-submit:hover svg{transform:translate(3px,-3px);}
+.np-submit:active{transform:translateY(-1px) scale(.99);}
+
+.np-order .demo-label{margin-top:14px;}
+
+/* плавное появление блоков */
+@keyframes np-fade-up{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:none;}}
+.np-layout .np-card{animation:np-fade-up .45s var(--ease-soft) both;}
+.np-col-main .np-card:nth-child(1){animation-delay:.03s;}
+.np-col-main .np-card:nth-child(2){animation-delay:.09s;}
+/* ---------- Промокоды и процентные скидки в оформлении ---------- */
+.np-promo-field-wrap{
+  display:flex;gap:7px;align-items:center;margin-top:2px;width:100%;
+}
+.np-promo-field-wrap input{
+  flex:1;min-width:0;text-transform:uppercase;font-family:inherit;font-weight:700;letter-spacing:1px;
+}
+.np-promo-apply-btn{
+  background:linear-gradient(125deg,#5e368a,#412163);
+  border:1px solid #7a4bb088;border-radius:8px;
+  color:#f2e6ff;font-size:11px;font-weight:600;
+  padding:0 14px;height:42px;cursor:pointer;
+  transition:all .2s ease;white-space:nowrap;flex-shrink:0;
+}
+.np-promo-apply-btn:hover{
+  background:linear-gradient(125deg,#7746ae,#532980);
+  border-color:#a56fe6;
+  box-shadow:0 0 14px rgba(165,111,230,0.35);
+  transform:translateY(-1px);
+}
+.np-promo-feedback{
+  margin-top:7px;font-size:11.5px;min-height:18px;line-height:1.45;width:100%;
+}
+.np-promo-msg{
+  display:block;line-height:1.45;word-break:normal;white-space:normal;
+}
+.np-promo-msg b{
+  font-weight:700;white-space:nowrap;
+}
+.np-promo-msg.success{
+  color:#7ee6bb;font-weight:500;
+}
+.np-promo-msg.error{
+  color:#f48ba1;font-weight:500;
+}
+.np-old-price{
+  text-decoration:line-through;color:#857597;font-size:13px;margin-right:6px;font-weight:400;opacity:0.85;
+}
+.np-discount-pill{
+  display:inline-block;padding:2px 7px;border-radius:5px;
+  background:#1e4736;color:#7ee6bb;border:1px solid #3fa47d66;
+  font-size:11px;font-weight:700;margin-left:6px;vertical-align:middle;
+  box-shadow:0 0 8px rgba(126,230,187,0.25);
+}
+
+.np-col-side .np-card{animation-delay:.06s;}
+
+/* ---------- адаптив ---------- */
+@media(max-width:900px){
+  .np-layout{grid-template-columns:1fr;}
+  .np-order{position:static;}
+  .info-modal.np-wide .info-window{padding:22px;}
+}
+@media(max-width:560px){
+  .info-modal.np-compact .info-window{padding:18px 16px;}
+  .np-compact-order{padding:14px;}
+  .np-compact-preview{padding:10px;}
+  .np-features{grid-template-columns:1fr;}
+  .np-pay-list{max-height:290px;overflow:auto;}
+  .np-plans{grid-template-columns:1fr;}
+  .np-inputs{grid-template-columns:1fr;}
+  .np-card{padding:18px;}
+  .info-modal.np-wide .info-window > h2{font-size:21px;}
+  .np-spec{flex-direction:column;gap:3px;}
+  .np-spec-value{text-align:left;}
+}
+
+@media (prefers-reduced-motion:reduce){
+  .np-layout .np-card{animation:none!important;}
+  .np-plan:hover,.np-submit:hover{transform:none!important;}
+  .np-pay-list,.np-pay-option{animation:none!important;transition:none!important;}
+  .np-pay.open .np-pay-option{opacity:1;transform:none;}
+}

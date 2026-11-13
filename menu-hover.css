@@ -1,0 +1,377 @@
+/* NOCTURNE — анимации при наведении на меню */
+
+/* ---------- Боковое меню ---------- */
+.sidebar nav a{
+  position:relative;
+  overflow:hidden;
+  isolation:isolate;
+  transition:color .28s ease, background-color .28s ease, border-color .28s ease,
+             transform .28s cubic-bezier(.22,.8,.3,1), box-shadow .28s ease;
+}
+/* бегущий световой блик */
+.sidebar nav a::before{
+  content:'';position:absolute;inset:0;z-index:-1;
+  background:linear-gradient(100deg,transparent 0%,#b58cf81f 45%,#e0c5fc2e 55%,transparent 100%);
+  transform:translateX(-120%);
+  transition:transform .6s cubic-bezier(.25,.8,.3,1);
+}
+.sidebar nav a:hover::before{transform:translateX(120%);}
+/* вертикальная неоновая полоса слева */
+.sidebar nav a::after{
+  content:'';position:absolute;left:0;top:50%;
+  width:2px;height:0;border-radius:2px;
+  background:linear-gradient(180deg,#c9a4ff,#8151d4);
+  box-shadow:0 0 10px #a674ff,0 0 20px #a674ff66;
+  transform:translateY(-50%);
+  transition:height .3s cubic-bezier(.22,.8,.3,1);
+}
+.sidebar nav a:hover::after,
+.sidebar nav a.active::after{height:62%;}
+
+.sidebar nav a:hover{
+  background:linear-gradient(100deg,#2a1c3d99,#1a1524aa);
+  border-color:#6c4a9340;
+  color:#f0e6ff;
+  transform:translateX(4px);
+  box-shadow:0 6px 20px -10px #8450cd80;
+}
+/* иконка: лёгкий подскок + свечение */
+.sidebar nav a svg{transition:transform .3s cubic-bezier(.3,1.4,.5,1), color .28s ease, filter .28s ease;}
+.sidebar nav a:hover>svg:first-child{
+  color:#c6a1fc;
+  transform:translateY(-1px) scale(1.14) rotate(-4deg);
+  filter:drop-shadow(0 0 6px #a674ffaa);
+}
+.sidebar nav a:hover svg:last-child:not(:first-child){
+  color:#c9a4ff;transform:translate(2px,-2px);
+}
+.sidebar nav a span:not([class]){transition:letter-spacing .28s ease;}
+.sidebar nav a:hover span:not([class]){letter-spacing:.02em;}
+/* бейджи */
+.sidebar nav a .nav-count,
+.sidebar nav a .new-mini{transition:background .28s ease,color .28s ease,transform .28s ease,box-shadow .28s ease;}
+.sidebar nav a:hover .nav-count{background:#4a2f66;color:#e2cdfa;transform:scale(1.07);}
+.sidebar nav a:hover .new-mini{background:#4a2f66;color:#eddafd;box-shadow:0 0 12px -2px #a674ff88;transform:scale(1.07);}
+.sidebar nav a .nav-dot{transition:transform .28s ease,box-shadow .28s ease;}
+.sidebar nav a:hover .nav-dot{transform:scale(1.35);box-shadow:0 0 14px #a674ff;}
+.sidebar nav a:active{transform:translateX(2px) scale(.985);}
+
+/* заголовки разделов меню слегка светлеют вместе с ховером */
+.sidebar nav:hover .nav-label{color:#7b7488;transition:color .3s ease;}
+
+/* ---------- Логотип / бренд ---------- */
+.brand{transition:transform .3s cubic-bezier(.22,.8,.3,1);}
+.brand img{transition:transform .45s cubic-bezier(.22,.8,.3,1),filter .35s ease;}
+.brand:hover img{transform:rotate(8deg) scale(1.08);filter:drop-shadow(0 0 14px #9b4cffaa);}
+.brand:hover b{color:#e9dcff;}
+
+/* ---------- Верхняя панель ---------- */
+.topbar .icon-button,
+.topbar .profile{transition:color .25s ease,transform .25s cubic-bezier(.3,1.3,.5,1),filter .25s ease;}
+.topbar .icon-button:hover{transform:translateY(-1px) scale(1.06);filter:drop-shadow(0 0 8px #a674ff66);}
+.search-trigger:hover kbd{border-color:#6c4a93;color:#c9a4ff;transition:border-color .25s ease,color .25s ease;}
+.topbar .profile:hover{color:#f0e6ff;transform:translateY(-1px);}
+.topbar .profile .avatar{transition:box-shadow .3s ease,border-color .3s ease,transform .3s cubic-bezier(.3,1.3,.5,1);}
+.topbar .profile:hover .avatar{border-color:#8a63b5;box-shadow:0 0 18px -3px #a674ffaa;transform:scale(1.06);}
+.topbar .profile:hover>svg{transform:translateX(3px);transition:transform .25s ease;}
+
+/* ---------- Мобильное меню-бургер ---------- */
+.mobile-toggle:hover svg{transform:scale(1.1);transition:transform .25s ease;}
+
+/* ---------- Фильтры каталога и вкладки кабинета ---------- */
+.filters button,
+.cabinet-nav button{
+  position:relative;overflow:hidden;
+  transition:color .25s ease,background .25s ease,border-color .25s ease,transform .25s cubic-bezier(.22,.8,.3,1),box-shadow .25s ease;
+}
+.filters button:hover,
+.cabinet-nav button:hover{transform:translateY(-2px);box-shadow:0 8px 18px -12px #8450cdcc;}
+.filters button::after,
+.cabinet-nav button::after{
+  content:'';position:absolute;left:50%;bottom:4px;height:1px;width:0;
+  background:linear-gradient(90deg,transparent,#c9a4ff,transparent);
+  transform:translateX(-50%);transition:width .3s ease;
+}
+.filters button:hover::after,
+.cabinet-nav button:hover::after{width:62%;}
+
+/* ---------- Ссылки-кнопки и футер ---------- */
+.text-button{transition:color .25s ease,transform .25s ease;}
+.text-button:hover{transform:translateX(2px);}
+.text-button svg{transition:transform .25s ease;}
+.text-button:hover svg{transform:translateX(3px);}
+footer button{transition:color .25s ease,transform .25s ease;}
+footer button:hover{transform:translateY(-1px);}
+
+/* ---------- Доступность ---------- */
+@media (prefers-reduced-motion:reduce){
+  .sidebar nav a,.sidebar nav a::before,.sidebar nav a::after,
+  .brand img,.topbar .icon-button,.topbar .profile,
+  .filters button,.cabinet-nav button,.text-button{transition:none!important;animation:none!important;}
+  .sidebar nav a:hover{transform:none;}
+}
+
+/* ============================================================
+   ПОДЪЁМ ЭЛЕМЕНТОВ ПРИ НАВЕДЕНИИ + ОБЩАЯ ПЛАВНОСТЬ САЙТА
+   ============================================================ */
+
+/* Плавный скролл и единая мягкая кривая */
+html{scroll-behavior:smooth;}
+:root{
+  --ease-soft:cubic-bezier(.22,.8,.3,1);
+  --ease-pop:cubic-bezier(.3,1.35,.5,1);
+}
+
+/* ---------- Боковое меню: подъём вверх ---------- */
+.sidebar nav a:hover{
+  transform:translateY(-3px) translateX(3px);
+  box-shadow:0 10px 22px -12px #8450cdb0;
+}
+.sidebar nav a:active{transform:translateY(-1px) scale(.99);}
+
+/* ---------- Табы каталога (Все продукты / Софты / Косметика / Сервисы) ---------- */
+.filters button{will-change:transform;}
+.filters button:hover{
+  transform:translateY(-4px);
+  color:#e3cdff;
+  background:#2b2138;
+  border-color:#6c4a9355;
+  box-shadow:0 12px 22px -14px #a674ffcc;
+}
+.filters button.selected:hover{background:#3d2650;}
+.filters button:active{transform:translateY(-1px) scale(.98);}
+
+/* ---------- Вкладки личного кабинета ---------- */
+.cabinet-nav button:hover{transform:translateY(-4px);box-shadow:0 12px 22px -14px #a674ffcc;}
+.cabinet-nav button:active{transform:translateY(-1px) scale(.98);}
+
+/* ---------- Карточки продуктов ---------- */
+.product-card{
+  transition:border-color .35s var(--ease-soft),
+             transform .4s var(--ease-soft),
+             box-shadow .4s var(--ease-soft);
+}
+.product-card:hover{
+  transform:translateY(-8px);
+  border-color:#7a52938f;
+  box-shadow:0 26px 46px -26px #000, 0 0 34px -18px #a674ff99;
+}
+.product-art>img,.product-art svg{transition:transform .5s var(--ease-soft),filter .4s ease;}
+.product-card:hover .product-art:not(.cosmetic)>img,
+.product-card:hover .product-art:not(.cosmetic) svg{transform:scale(1.06) translateY(-3px);filter:drop-shadow(0 0 18px #a674ff55);}
+.product-card:hover .product-title h3{color:#f1e6ff;}
+.product-title h3{transition:color .3s ease;}
+
+/* Кнопки внутри карточек */
+.product-buy{transition:transform .28s var(--ease-pop),background .28s ease,box-shadow .28s ease,border-color .28s ease;}
+.product-buy:hover{transform:translateY(-3px);box-shadow:0 12px 22px -12px #a674ffcc;}
+.product-buy:active{transform:translateY(-1px) scale(.98);}
+.product-buy svg{transition:transform .28s var(--ease-soft);}
+.product-buy:hover svg{transform:translateX(3px);}
+
+/* Плашки-теги на карточках */
+.product-tags .tag{transition:transform .3s var(--ease-soft),box-shadow .3s ease;}
+.product-card:hover .product-tags .tag{transform:translateY(-2px);}
+
+/* ---------- Кнопки героя и общие кнопки ---------- */
+.button{transition:transform .3s var(--ease-pop),background .3s ease,box-shadow .3s ease,border-color .3s ease,color .3s ease;}
+.button:hover{transform:translateY(-3px);}
+.button:active{transform:translateY(-1px) scale(.985);}
+.button svg{transition:transform .3s var(--ease-soft);}
+.button.primary:hover svg{transform:translateX(4px);}
+.button.ghost:hover svg{transform:translate(3px,-3px);}
+.button.ghost:hover{box-shadow:0 12px 24px -16px #a674ffaa;}
+
+/* ---------- Плитки преимуществ ---------- */
+.benefits>div{transition:transform .35s var(--ease-soft);}
+.benefits>div:hover{transform:translateY(-4px);}
+.benefits>div svg{transition:transform .35s var(--ease-pop),color .3s ease,filter .3s ease;}
+.benefits>div:hover svg{transform:translateY(-2px) scale(1.12);color:#c6a1fc;filter:drop-shadow(0 0 8px #a674ff88);}
+.benefits>div:hover span{color:#eee6f8;}
+.benefits span{transition:color .3s ease;}
+
+/* ---------- Верхняя панель: подъём ---------- */
+.topbar .icon-button:hover{transform:translateY(-3px) scale(1.05);}
+.topbar .profile:hover{transform:translateY(-3px);}
+.search-trigger:hover{transform:translateY(-3px);}
+.mobile-toggle:hover{transform:translateY(-2px);}
+
+/* ---------- Прочие интерактивные блоки ---------- */
+.text-button:hover{transform:translateY(-2px) translateX(2px);}
+.side-promo{transition:transform .35s var(--ease-soft),border-color .35s ease,box-shadow .35s ease;}
+.side-promo:hover{transform:translateY(-3px);border-color:#5a3d70;box-shadow:0 14px 26px -18px #a674ffaa;}
+.side-promo:hover .orb-small{text-shadow:0 0 30px #a43dff;}
+.orb-small{transition:text-shadow .35s ease,transform .35s var(--ease-pop);}
+.side-promo:hover .orb-small{transform:scale(1.08);}
+.brand:hover{transform:translateY(-2px);}
+.discord-button,.community-card,.news-body,.support-strip{transition:transform .35s var(--ease-soft),box-shadow .35s ease,border-color .35s ease;}
+.discord-button:hover{transform:translateY(-3px);box-shadow:0 14px 26px -14px #7b8ff5cc;}
+.support-strip:hover,.news-body:hover{transform:translateY(-3px);border-color:#41335055;}
+footer button:hover{transform:translateY(-2px);}
+
+/* Мягкие переходы у модальных/карточных поверхностей */
+.card,.panel-heading{transition:border-color .35s ease,box-shadow .35s ease,transform .35s var(--ease-soft);}
+
+/* ---------- Доступность ---------- */
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto;}
+  *{transition:none!important;animation:none!important;}
+  .sidebar nav a:hover,.filters button:hover,.product-card:hover,
+  .button:hover,.benefits>div:hover,.topbar .profile:hover,
+  .topbar .icon-button:hover,.side-promo:hover{transform:none!important;}
+}
+
+/* ============================================================
+   ПЛАВНАЯ СМЕНА ЦВЕТА ЗНАЧКА «КОСМЕТИКА» ПРИ НАВЕДЕНИИ
+   ============================================================ */
+
+/* Чёрная дыра в карточке «Косметика»: базовый космический фиолетовый цвет с мягким свечением */
+.product-art.cosmetic>img{
+  filter: hue-rotate(225deg) saturate(0.85) brightness(0.98) drop-shadow(0 0 10px rgba(164,127,239,0.4));
+  transition: filter 0.8s cubic-bezier(0.22, 1, 0.36, 1), transform 0.6s var(--ease-soft) !important;
+  will-change: filter, transform;
+}
+
+/* При наведении: цвет значка МЯГКО И ПЛАВНО переливается в изумрудно-зеленый (со скриншота) */
+.product-card:hover .product-art.cosmetic>img,
+.product-card[data-product-id="collection"]:hover .product-art.cosmetic>img,
+.product-card[data-product-id="cosmic"]:hover .product-art.cosmetic>img{
+  filter: hue-rotate(88deg) saturate(1.35) brightness(1.06) drop-shadow(0 0 24px rgba(101,217,176,0.75)) !important;
+  transform: rotate(10deg) scale(1.07) translateY(-3px) !important;
+}
+
+/* Для остальных вариаций косметики: тоже гладкие и гармоничные переливы */
+.product-card[data-product-id="shadow"]:hover .product-art.cosmetic>img{
+  filter: hue-rotate(280deg) saturate(0.95) brightness(1.1) drop-shadow(0 0 24px rgba(180,100,255,0.75)) !important;
+  transform: rotate(10deg) scale(1.07) translateY(-3px) !important;
+}
+.product-card[data-product-id="legend"]:hover .product-art.cosmetic>img{
+  filter: hue-rotate(360deg) saturate(1.3) brightness(1.15) drop-shadow(0 0 24px rgba(255,165,50,0.8)) !important;
+  transform: rotate(10deg) scale(1.07) translateY(-3px) !important;
+}
+
+/* Свечение подложки карточки тоже плавно меняет оттенок с фиолетового на изумрудный */
+.product-art.cosmetic{
+  background: radial-gradient(ellipse at 50% 85%, #722eac55, transparent 70%), #12101c;
+  transition: background 0.8s ease, border-color 0.8s ease;
+}
+.product-card:hover .product-art.cosmetic,
+.product-card[data-product-id="collection"]:hover .product-art.cosmetic,
+.product-card[data-product-id="cosmic"]:hover .product-art.cosmetic{
+  background: radial-gradient(ellipse at 50% 85%, rgba(46,172,130,0.42), transparent 70%), #12101c !important;
+}
+
+/* Плавная смена цвета у акцентных текстов и рамок */
+.product-card,.product-title h3,.product-body p,.product-buy,
+.price,.product-tags .tag,.filters button,.sidebar nav a,
+.button,.text-button,.benefits span,.benefits svg{
+  transition-property:color,background-color,border-color,box-shadow,fill,stroke,filter,transform,background;
+  transition-duration:.45s;
+  transition-timing-function:var(--ease-soft);
+}
+
+/* Мягкий цветовой отклик карточки «Косметика» при наведении */
+.product-card:hover .price{color:#f0dcff;}
+.price{transition:color .45s ease;}
+
+/* Доступность */
+@media (prefers-reduced-motion:reduce){
+  .product-art.cosmetic,.product-art.cosmetic>img{animation:none!important;}
+}
+
+/* ============================================================
+   ПЛАВНЫЙ ПЕРЕХОД «ВХОД» ↔ «РЕГИСТРАЦИЯ»
+   ============================================================ */
+.nc-window{
+  overflow:hidden;
+  transition:height .38s var(--ease-soft), box-shadow .4s ease, border-color .4s ease;
+}
+/* элементы, которые перелистываются */
+.nc-window > h3,
+.nc-window > .auth-note,
+.nc-window > input,
+.nc-window > #nc-action,
+.nc-window > .nc-switcher{
+  transition:opacity .17s ease, transform .17s var(--ease-soft), filter .17s ease;
+}
+
+/* фаза 1 — уход старого содержимого */
+.nc-window.nc-swap-out > h3,
+.nc-window.nc-swap-out > .auth-note,
+.nc-window.nc-swap-out > input,
+.nc-window.nc-swap-out > #nc-action,
+.nc-window.nc-swap-out > .nc-switcher{
+  opacity:0;
+  filter:blur(2px);
+}
+.nc-window.nc-swap-out.nc-swap-dir-left > h3,
+.nc-window.nc-swap-out.nc-swap-dir-left > .auth-note,
+.nc-window.nc-swap-out.nc-swap-dir-left > input,
+.nc-window.nc-swap-out.nc-swap-dir-left > #nc-action,
+.nc-window.nc-swap-out.nc-swap-dir-left > .nc-switcher{transform:translateX(-18px);}
+.nc-window.nc-swap-out.nc-swap-dir-right > h3,
+.nc-window.nc-swap-out.nc-swap-dir-right > .auth-note,
+.nc-window.nc-swap-out.nc-swap-dir-right > input,
+.nc-window.nc-swap-out.nc-swap-dir-right > #nc-action,
+.nc-window.nc-swap-out.nc-swap-dir-right > .nc-switcher{transform:translateX(18px);}
+
+/* фаза 2 — появление нового содержимого с каскадом */
+@keyframes nc-auth-in-left{
+  from{opacity:0;transform:translateX(22px);filter:blur(3px);}
+  to  {opacity:1;transform:none;filter:none;}
+}
+@keyframes nc-auth-in-right{
+  from{opacity:0;transform:translateX(-22px);filter:blur(3px);}
+  to  {opacity:1;transform:none;filter:none;}
+}
+.nc-window.nc-swap-in-left  > h3,
+.nc-window.nc-swap-in-left  > .auth-note,
+.nc-window.nc-swap-in-left  > input,
+.nc-window.nc-swap-in-left  > #nc-action,
+.nc-window.nc-swap-in-left  > .nc-switcher{animation:nc-auth-in-left .36s var(--ease-soft) both;}
+.nc-window.nc-swap-in-right > h3,
+.nc-window.nc-swap-in-right > .auth-note,
+.nc-window.nc-swap-in-right > input,
+.nc-window.nc-swap-in-right > #nc-action,
+.nc-window.nc-swap-in-right > .nc-switcher{animation:nc-auth-in-right .36s var(--ease-soft) both;}
+
+/* каскадные задержки — строки «наплывают» одна за другой */
+.nc-window[class*="nc-swap-in"] > h3          {animation-delay:0s;}
+.nc-window[class*="nc-swap-in"] > .auth-note  {animation-delay:.04s;}
+.nc-window[class*="nc-swap-in"] > input:nth-of-type(1){animation-delay:.08s;}
+.nc-window[class*="nc-swap-in"] > input:nth-of-type(2){animation-delay:.12s;}
+.nc-window[class*="nc-swap-in"] > #nc-action  {animation-delay:.16s;}
+.nc-window[class*="nc-swap-in"] > .nc-switcher{animation-delay:.2s;}
+
+/* мягкая пульсация свечения окна в момент смены режима */
+.nc-window.nc-swap-out{box-shadow:0 24px 60px -30px #000, 0 0 40px -18px #a674ff66;}
+
+/* символ ✦ слегка проворачивается при смене */
+.nc-window .dialog-symbol{transition:transform .5s var(--ease-soft), color .4s ease;}
+.nc-window.nc-swap-out .dialog-symbol{transform:rotate(160deg) scale(.88);color:#d2b6f6;}
+
+/* ссылка-переключатель «Зарегистрироваться / Войти» */
+.nc-switcher button{
+  position:relative;
+  transition:color .3s ease, transform .3s var(--ease-soft);
+}
+.nc-switcher button::after{
+  content:'';position:absolute;left:0;bottom:-2px;width:0;height:1px;
+  background:linear-gradient(90deg,#c9a4ff,#8151d4);
+  transition:width .3s var(--ease-soft);
+}
+.nc-switcher button:hover{color:#e0c5fc;transform:translateY(-1px);}
+.nc-switcher button:hover::after{width:100%;}
+
+/* поля ввода — плавный отклик на фокус */
+.nc-window input{transition:border-color .3s ease, box-shadow .3s ease, background .3s ease;}
+.nc-window input:focus{
+  outline:none;border-color:#7c56a8;background:#100c19;
+  box-shadow:0 0 0 3px #a674ff1f, 0 0 18px -8px #a674ffaa;
+}
+#nc-action{transition:transform .28s var(--ease-pop),background .3s ease,box-shadow .3s ease;}
+#nc-action:hover{transform:translateY(-2px);box-shadow:0 12px 22px -12px #a674ffcc;}
+
+@media (prefers-reduced-motion:reduce){
+  .nc-window,.nc-window *{animation:none!important;transition:none!important;}
+}

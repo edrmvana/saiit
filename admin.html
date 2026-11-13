@@ -1,0 +1,1674 @@
+<!doctype html><html lang="ru"><head><!-- NOCTURNE admin: players-visible-compat-fix-2 --><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>NOCTURNE — админ-панель</title><style>.admin-toast{position:fixed;right:24px;top:24px;z-index:20;display:flex;align-items:center;gap:12px;padding:15px 17px;border:1px solid #42d99b;border-radius:14px;background:linear-gradient(135deg,#171044,#28166b);box-shadow:0 14px 40px #0008;color:#fff}.admin-toast b{width:27px;height:27px;border-radius:50%;display:grid;place-items:center;background:#2bbf83}.admin-toast button{padding:0 4px;border:0;background:transparent;font-size:20px}</style>
+<style>body{margin:0;background:#070918;color:#eef;font:15px Arial,sans-serif}main{max-width:1100px;margin:auto;padding:28px}h1{margin-top:0;color:#b89cff}.panel{background:#11152d;border:1px solid #30366b;border-radius:16px;padding:20px;margin:16px 0}table{width:100%;border-collapse:collapse}th,td{padding:12px;border-bottom:1px solid #292d50;text-align:left}input,select,button{padding:10px;border-radius:8px;border:1px solid #5c4ab0;background:#090c21;color:#fff}button{background:#7650ff;cursor:pointer}.actions{display:flex;gap:8px;flex-wrap:wrap}.muted{color:#9ca6c5}.danger{color:#ff8d9d}</style><style>.server-panel{display:flex;align-items:center;justify-content:space-between;gap:20px;border-color:#42d99b}.server-panel.off{border-color:#ff718d}.server-state{display:flex;align-items:center;gap:12px}.dot{width:12px;height:12px;border-radius:50%;background:#2bbf83;box-shadow:0 0 14px #2bbf83}.off .dot{background:#e44c6c;box-shadow:0 0 14px #e44c6c}.server-hint{color:#aeb7d8;font-size:13px;margin:5px 0 0}</style><style>
+.admin-lock{position:fixed;inset:0;background:rgba(3,5,18,.72);backdrop-filter:blur(5px);display:flex;align-items:center;justify-content:center;z-index:99999}
+.admin-box{width:360px;padding:32px;border-radius:24px;background:linear-gradient(145deg,#17133b,#090b20);border:1px solid #6d54ff;box-shadow:0 0 60px #6d54ff55;text-align:center;color:#fff}
+.admin-box h2{margin:0 0 10px;color:#bca7ff}
+.admin-box input{width:90%;margin:15px 0;background:#080b20}
+.admin-box button{width:100%;padding:12px;font-size:16px}
+.admin-error{color:#ff8297;min-height:20px}
+</style>
+<script>
+(function(){
+ const ADMIN_PASSWORD="qwerty123123";
+ document.addEventListener("DOMContentLoaded",()=>{
+   const lock=document.createElement("div");
+   lock.className="admin-lock";
+   lock.innerHTML=`<div class="admin-box">
+   <h2>NOCTURNE Admin</h2>
+   <p class="muted">Введите пароль администратора</p>
+   <input id="adminPass" type="password" placeholder="Пароль">
+   <button id="adminLogin">Войти</button>
+   <div class="admin-error" id="adminError"></div>
+   </div>`;
+   document.body.appendChild(lock);
+   document.getElementById("adminLogin").onclick=()=>{
+     let val=document.getElementById("adminPass").value;
+     if(val===ADMIN_PASSWORD){
+       closeAdminLock(lock);
+     }else{
+       document.getElementById("adminError").textContent="Неверный пароль";
+       document.getElementById("adminPass").value="";
+     }
+   };
+ });
+})();
+</script>
+<style>
+:root{color-scheme:dark}body{background:#090911;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;color:#e8dff3}main{max-width:1180px;padding:35px 24px}.panel{background:#12101d;border-color:#35293f;border-radius:13px;overflow:auto}input,select{background:#0b0912;border-color:#4a335d}button{background:#8457b9;border-color:#a575d344}button:hover{filter:brightness(1.12)}h1{color:#ceb3ef;letter-spacing:-1px}.admin-box{background:radial-gradient(ellipse at top,#43255466,transparent),#14101f;border-color:#674180;box-shadow:0 30px 100px #0009;width:min(360px,calc(100vw - 50px))}.admin-box button{background:#8756c2}.admin-notice{border:1px solid #614772;border-radius:10px;padding:14px 18px;background:#281930;font-size:12px;line-height:1.8;color:#c1a7d4;margin-bottom:25px}.admin-notice a{color:#e4c9ff}.admin-notice strong{color:#e9c9ff}th,td{font-size:12px;border-color:#37283f}table{min-width:600px}.muted{color:#9b86aa}@media(max-width:600px){main{padding:20px 12px}.server-panel{flex-direction:column;align-items:start}.panel{padding:15px}h1{font-size:27px}}button:focus-visible,a:focus-visible{outline:2px solid #c79bef;outline-offset:3px}
+</style><style>.role-badge,.chat-msg .role-badge{display:inline-flex;align-items:center;gap:5px;flex-shrink:0;width:max-content;max-width:100%;margin:0;padding:3px 8px;border-radius:6px;border:1px solid var(--role-line,#775397);background:var(--role-bg,#322043);color:var(--role-text,#d3b0ff);font-size:10px;font-weight:600;line-height:1.4;letter-spacing:.01em;vertical-align:middle}.role-cosmic{--role-line:#8057b16b;--role-bg:#51317145;--role-text:#d1acff}.role-shadow{--role-line:#7383a05c;--role-bg:#28334599;--role-text:#bccce6}.role-legend{--role-line:#a079446b;--role-bg:#61491e45;--role-text:#f2cc84}.role-badge .role-symbol,.chat-msg .role-badge .role-symbol{display:inline;margin:0;font-size:12px;color:inherit;line-height:1}.chat-msg-header{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.chat-msg-header time{margin-left:auto;color:#72677e;font-size:9px;font-variant-numeric:tabular-nums}.chat-msg .chat-message-text{display:block;line-height:1.7;color:#d4c6df;margin-top:7px;white-space:pre-wrap}.role-section-heading{display:flex;gap:12px;align-items:start;justify-content:space-between;margin-bottom:17px}.role-section-heading h2{margin-bottom:5px}.role-section-heading p{font-size:11px;color:#9c8ba8;line-height:1.6;margin:0}.role-count{font-size:10px;color:#a88dbd;border:1px solid #4b345b;border-radius:6px;padding:3px 7px;white-space:nowrap}.wardrobe{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:27px}.wardrobe-item{background:radial-gradient(ellipse at 50% 0,var(--role-bg),transparent 80%),#15111e;border:1px solid #372c41;border-radius:12px;padding:17px;position:relative;transition:border-color .25s,background .25s}.wardrobe-item.equipped{border-color:var(--role-line);box-shadow:inset 0 0 0 1px var(--role-bg)}.wardrobe-icon{width:38px;height:38px;border:1px solid var(--role-line);background:var(--role-bg);color:var(--role-text);border-radius:10px;font-size:24px;display:grid;place-items:center;margin-bottom:14px}.wardrobe-item .role-badge{font-size:10px}.wardrobe-description{color:#95839f;font-size:10px;line-height:1.7;margin:9px 0 16px!important;min-height:34px}.wardrobe-status{font-size:8px;position:absolute;right:12px;top:16px;letter-spacing:.08em;text-transform:uppercase;color:#786b83}.equipped .wardrobe-status{color:var(--role-text)}.wardrobe-toggle{width:100%;min-height:36px;padding:8px 10px;border:1px solid #7451935c;border-radius:7px;background:#53317070;color:#d9b9f3;font-size:11px;transition:background .2s,border-color .2s}.wardrobe-toggle:hover{background:#624078}.equipped .wardrobe-toggle{background:transparent;border-color:var(--role-line);color:var(--role-text)}.role-empty{padding:20px;border:1px dashed #493156;border-radius:10px;color:#9b85ad;font-size:12px;line-height:1.8;margin-bottom:22px}.role-empty button{margin-top:10px;display:block;padding:0;color:#c29be9;font-size:12px}.chat-identity{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:12px;border:1px solid #33283d;border-radius:9px;background:#15101e;margin:18px 0 4px;font-size:11px;color:#9d89af}.chat-identity strong{font-weight:500;color:#dbcae7;overflow-wrap:anywhere}.chat-identity .role-manage{margin-left:auto;padding:4px;color:#b895d8;font-size:10px}.chat-identity .role-none{color:#83728f;font-size:10px}.admin-chat-message{padding:13px 0;border-bottom:1px solid #34253f;overflow-wrap:anywhere}.admin-chat-message p{color:#c1aecf;line-height:1.7;margin:7px 0 0;font-size:12px;white-space:pre-wrap}.admin-chat-message .chat-msg-header b{font-size:12px;color:#d4b7ed}@media(max-width:700px){.wardrobe{grid-template-columns:1fr}.wardrobe-item{display:grid;grid-template-columns:42px 1fr;column-gap:12px;padding:15px}.wardrobe-icon{grid-row:span 2;margin:0}.wardrobe-item>.role-badge{align-self:center;max-width:calc(100% - 55px)}.wardrobe-description{min-height:0;margin:5px 0 12px!important;grid-column:2;font-size:10px}.wardrobe-toggle{grid-column:1/-1}.wardrobe-status{top:23px;font-size:7px}.role-section-heading p{font-size:10px}.chat-identity .role-manage{margin-left:0}.chat-msg-header{gap:6px}.chat-msg-header time{font-size:8px}.role-badge,.chat-msg .role-badge{font-size:9px}}
+@media(prefers-reduced-motion:reduce){.wardrobe-item,.wardrobe-toggle{transition:none}}
+</style><style>*{box-sizing:border-box}button,input,textarea{font:inherit}button{transition:background .2s,border-color .2s,filter .2s}.admin-toasts{position:fixed;top:24px;right:24px;z-index:200000;width:min(410px,calc(100vw - 32px));display:flex;flex-direction:column;gap:11px;pointer-events:none}.admin-toasts .admin-toast{--toast-accent:#70dab5;--toast-bg:#244e413b;position:relative;inset:auto;display:grid;grid-template-columns:39px 1fr 20px;align-items:start;gap:12px;pointer-events:auto;width:100%;padding:18px 16px 21px;border:1px solid #57506670;border-radius:14px;background:linear-gradient(125deg,#231930,#13111e 80%);box-shadow:0 15px 45px #0008,0 0 24px #8050b312;overflow:hidden;color:#eee5f7}.admin-toasts .admin-toast.error{--toast-accent:#f08ba0;--toast-bg:#742a403b}.admin-toasts .admin-toast.info{--toast-accent:#b896f0;--toast-bg:#65418a3b}.toast-icon{display:grid;place-items:center;width:37px;height:37px;background:var(--toast-bg);border:1px solid color-mix(in srgb,var(--toast-accent) 35%,transparent);border-radius:11px;color:var(--toast-accent)}.toast-icon svg{width:19px;height:19px}.toast-copy strong{display:block;font-size:13px;font-weight:600;line-height:1.5;letter-spacing:-.1px}.toast-copy p{margin:5px 0 0;color:#a995b9;font-size:11px;line-height:1.75;white-space:pre-line;overflow-wrap:anywhere}.toast-copy .toast-label{display:block;color:#7e6b8b;font-size:8px;letter-spacing:.12em;margin-bottom:5px}.admin-toast .toast-close{font-size:20px;font-weight:300;padding:0;border:none;background:transparent;color:#8b789a;line-height:1;width:20px;height:22px}.toast-close:hover{color:white!important}.toast-track{position:absolute;bottom:0;left:0;right:0;height:2px;background:#292135}.toast-progress{display:block;width:100%;height:100%;background:var(--toast-accent);transform-origin:left}.admin-action-overlay{position:fixed;inset:0;z-index:110000;display:flex;align-items:center;justify-content:center;background:#07050ec9;backdrop-filter:blur(14px);padding:20px}.admin-action-overlay[hidden]{display:none}.admin-action-dialog{width:min(440px,100%);max-height:calc(100dvh - 40px);overflow:auto;position:relative;padding:30px;border:1px solid #644376;border-radius:20px;background:radial-gradient(ellipse at 100% 0,#4a285c66,transparent 65%),#14101e;box-shadow:0 30px 110px #000a}.admin-action-dialog h2{font-size:25px;letter-spacing:-.7px;margin:10px 0 7px;color:#f1e5ff}.admin-action-dialog .dialog-caption{color:#a48ab7;font-size:12px;line-height:1.8;margin:0 0 23px}.admin-action-symbol{display:grid;place-items:center;color:#cca1f7;background:#4d2d654a;border:1px solid #8253a35e;border-radius:12px;width:45px;height:45px;font-size:23px;margin-bottom:18px}.admin-action-close{position:absolute;top:16px;right:17px;border:none;background:transparent;color:#a48ab7;padding:0;font-size:25px}.admin-action-dialog label{display:block;font-size:11px;color:#b69fc6;margin-bottom:8px}.money-field{display:flex;align-items:center;border:1px solid #785190;border-radius:10px;background:#0c0912;overflow:hidden;box-shadow:0 0 0 3px #8d50b811}.money-field input{min-width:0;width:100%;font-size:28px;font-weight:600;padding:14px 16px;background:transparent;border:0;color:#eee1fc;outline:none}.money-field span{font-size:20px;color:#877192;padding-right:16px}.money-field:focus-within{border-color:#b587e1;box-shadow:0 0 0 3px #9467bc22}.money-presets{display:flex;gap:7px;margin:10px 0 21px}.money-presets button{padding:6px 12px;border:1px solid #4e355e;border-radius:6px;background:#291d34;color:#bea0d3;font-size:11px}.money-presets button:hover{background:#432d55}.money-summary{border:1px solid #3b2b48;background:#100c17;padding:14px 15px;border-radius:10px;margin-top:16px}.money-summary div{display:flex;justify-content:space-between;gap:15px;font-size:11px;color:#927e9f;line-height:1.8}.money-summary div+div{border-top:1px solid #33243e;margin-top:10px;padding-top:10px}.money-summary strong{font-weight:500;color:#d5bde7}.money-summary div:last-child strong{color:#83d8b4}.admin-action-error{color:#f295ab;min-height:20px;font-size:11px;line-height:1.6;margin:9px 0}.admin-action-buttons{display:flex;gap:10px;margin-top:10px}.admin-action-buttons button{font-size:12px;border-radius:9px;padding:12px 15px}.admin-action-buttons .cancel{background:#211729;border-color:#483151;color:#ae91c1}.admin-action-buttons .confirm{background:linear-gradient(110deg,#a175d6,#7744ae);border-color:#b080db70;flex:1;color:white;font-weight:600}.admin-action-footnote{font-size:9px;color:#766181;line-height:1.7;margin:15px 0 0}.admin-action-dialog textarea{display:block;width:100%;min-height:120px;padding:13px;background:#0c0912;border:1px solid #644276;border-radius:10px;color:#e5d5f1;resize:vertical;line-height:1.7;outline:none}.admin-action-dialog textarea:focus{border-color:#b587e1}.admin-action-dialog input[aria-invalid="true"]{color:#efa0b2}.admin-member{display:flex;align-items:center;gap:7px;flex-wrap:wrap}.admin-member b{font-weight:500}.support-entry{border-bottom:1px solid #35253f;padding:14px 0;font-size:12px;color:#c6aed7;overflow-wrap:anywhere}.support-entry p{white-space:pre-wrap;line-height:1.7}.support-entry button{font-size:11px;padding:7px 13px}.support-entry .support-reply{border-left:2px solid #9366b6;padding-left:13px;color:#a995b9}.admin-chat-heading{display:flex;gap:10px;align-items:center}.admin-chat-heading small{font-size:9px;color:#8c729e;font-weight:400}#admin-chat-list{max-height:450px;overflow:auto}.admin-lock .admin-box{box-sizing:border-box}.admin-lock .admin-box input{width:100%}@media(max-width:600px){.admin-toasts{top:15px;right:15px;width:calc(100vw - 30px)}.admin-toasts .admin-toast{padding:15px 13px 19px;grid-template-columns:34px 1fr 18px;gap:10px}.toast-icon{width:33px;height:33px}.toast-copy strong{font-size:12px}.toast-copy p{font-size:10px}.admin-action-overlay{padding:15px}.admin-action-dialog{padding:24px;max-height:calc(100dvh - 30px)}.admin-action-dialog h2{font-size:23px}.money-field input{font-size:25px}.admin-action-buttons button{font-size:11px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important;scroll-behavior:auto!important}}
+
+.players-heading{display:flex;justify-content:space-between;gap:15px;align-items:center}.players-heading h2{display:flex;align-items:center;gap:10px}.players-heading h2 span{font-size:12px;color:#b596cb;border:1px solid #533567;border-radius:6px;padding:3px 7px}.players-heading button{font-size:11px;padding:8px 12px}.accounts-status{padding:12px 15px;border:1px solid #73507870;background:#2e1c354d;border-radius:9px;font-size:12px;line-height:1.8;color:#c4a5d4}.accounts-status[hidden]{display:none}.storage-details{font-size:11px;color:#927b9f;margin:0 0 20px}.storage-details summary{cursor:pointer;width:fit-content;color:#b097c4}.storage-details p{overflow-wrap:anywhere;line-height:1.8;max-width:900px}.actions button:disabled{opacity:.4;cursor:not-allowed}@media(max-width:500px){.players-heading{align-items:start;flex-direction:column;gap:0;margin-bottom:15px}}
+
+/* Стили панели управления промокодами */
+.promo-panel{margin-top:20px;}
+.promo-heading{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;gap:15px;flex-wrap:wrap;}
+.promo-form-grid{display:grid;grid-template-columns:1.3fr 1.2fr 1fr auto;gap:14px;align-items:end;margin-bottom:22px;padding:18px;background:radial-gradient(ellipse at 100% 0,#3c235445,transparent 70%),#14101e;border:1px solid #452d5e;border-radius:12px;}
+.promo-field{display:flex;flex-direction:column;gap:6px;}
+.promo-field label{font-size:11px;color:#c0a8d4;font-weight:500;}
+.promo-code-input-group,.promo-discount-group{display:flex;gap:7px;align-items:center;}
+.promo-code-input-group input{flex:1;min-width:0;}
+.promo-random-btn{padding:8px 12px;font-size:11px;background:#2b1b3b;border:1px solid #5d3d7d;color:#d8bcf5;border-radius:6px;cursor:pointer;white-space:nowrap;}
+.promo-random-btn:hover{background:#412658;}
+.promo-add-button{padding:10px 18px;font-size:12px;font-weight:600;background:linear-gradient(115deg,#9d67dc,#7841c2);border:1px solid #bc8aff66;border-radius:8px;color:#fff;cursor:pointer;white-space:nowrap;box-shadow:0 4px 14px rgba(135,76,217,0.3);}
+.promo-add-button:hover{background:linear-gradient(115deg,#af7df0,#884fd6);transform:translateY(-1px);}
+.promo-badge{display:inline-flex;align-items:center;gap:6px;font-family:monospace;font-size:12px;font-weight:700;color:#f3e8ff;background:#241838;border:1px solid #6d4b94;padding:4px 9px;border-radius:6px;}
+.promo-discount-tag{display:inline-flex;align-items:center;padding:3px 8px;border-radius:5px;font-size:11px;font-weight:700;background:#1e4736;color:#7ee6bb;border:1px solid #3fa47d66;}
+.promo-copy-btn{padding:4px 8px;font-size:10px;background:#35204c;border:1px solid #66418f;color:#c8a3f0;border-radius:5px;cursor:pointer;}
+.promo-copy-btn:hover{background:#4d2d6e;color:#fff;}
+.promo-del-btn{padding:4px 8px;font-size:10px;background:#3b1c28;border:1px solid #7a3147;color:#f397ab;border-radius:5px;cursor:pointer;}
+.promo-del-btn:hover{background:#582536;color:#fff;}
+.promo-toggle-btn{padding:4px 8px;font-size:10px;background:#222538;border:1px solid #485177;color:#b2c2f0;border-radius:5px;cursor:pointer;}
+.promo-toggle-btn:hover{background:#333a57;color:#fff;}
+@media(max-width:900px){
+  .promo-form-grid{grid-template-columns:1fr;gap:12px;}
+}
+</style><style>/* Shared NOCTURNE menu treatment: a soft violet halo, with no continuous pulsing. */
+:root{--menu-glow-line:#9b6cdd88;--menu-glow-soft:rgba(143,76,228,.16);--menu-glow-wide:rgba(113,54,190,.09);--menu-ease:cubic-bezier(.22,1,.36,1)}
+.nc-window,.avatar-window,.purchase-window,.info-window,.admin-action-dialog,.admin-lock .admin-box{
+ border-color:var(--menu-glow-line);
+ box-shadow:0 0 0 1px #c297ff0c,0 0 28px #9153df45,0 0 76px #783ac526,0 26px 85px #0009,inset 0 1px 0 #d1b2ff12;
+ transition:border-color .3s ease,box-shadow .38s ease,background-color .3s ease;
+}
+.nc-window:focus-within,.avatar-window:focus-within,.purchase-window:focus-within,.info-window:focus-within,.admin-action-dialog:focus-within,.admin-lock .admin-box:focus-within{
+ border-color:#b787f4b3;
+ box-shadow:0 0 0 1px #c297ff14,0 0 32px #a05ff64d,0 0 90px #783ac52e,0 26px 85px #0009,inset 0 1px 0 #d1b2ff18;
+}
+.sidebar{
+ border-right-color:#8153ae55;
+ box-shadow:7px 0 28px #8546c814,inset -1px 0 #b18bdd0b;
+ transition:transform .42s var(--menu-ease),box-shadow .35s ease,border-color .3s ease;
+}
+.sidebar.open{box-shadow:8px 0 35px #8d4dd530,24px 0 85px #5d25881c}
+.sidebar nav a,.filters button,.cabinet-nav button,.profile,.search-trigger,.mobile-toggle,
+.search-result,.purchase-options button,.purchase-cancel,.nc-close,.wardrobe-toggle,.role-manage,
+.account-actions button,.cabinet-key-row button,.chat-send button,.admin-action-buttons button,.money-presets button{
+ transition:background-color .28s ease,border-color .3s ease,color .25s ease,box-shadow .35s ease,opacity .25s ease;
+}
+.sidebar nav a.active,.sidebar nav a:hover,.sidebar nav a:focus-visible,
+.filters button.selected,.filters button:hover,.filters button:focus-visible,
+.cabinet-nav button.selected,.cabinet-nav button:hover,.cabinet-nav button:focus-visible{
+ border-color:#9863d678;
+ box-shadow:0 0 16px #934de32b,inset 0 0 16px #9c60e50b;
+}
+.cabinet-nav,.account-card .card,.product-card,.side-promo,.panel{
+ border-color:#75469e70;
+ box-shadow:0 0 0 1px #aa79df05,0 0 22px var(--menu-glow-soft),0 0 50px var(--menu-glow-wide),inset 0 1px 0 #c6a0ee09;
+ transition:border-color .3s ease,box-shadow .38s ease,background-color .3s ease;
+}
+.cabinet-nav:focus-within,.account-card .card:focus-within,.product-card:hover,.product-card:focus-within,.panel:focus-within{
+ border-color:#9d68cf99;
+ box-shadow:0 0 0 1px #b77af00d,0 0 28px #9953de30,0 0 64px #8241c219,inset 0 1px 0 #c6a0ee0e;
+}
+.profile{border-radius:10px}
+.profile:hover,.profile:focus-visible,.mobile-toggle:hover,.mobile-toggle:focus-visible{box-shadow:0 0 22px #9959d733}
+.search-result:hover,.search-result:focus-visible,.purchase-options button:hover,.wardrobe-toggle:hover,
+.account-actions button:hover,.cabinet-key-row button:hover,.chat-send button:hover,.admin-action-buttons .confirm:hover{
+ box-shadow:0 0 18px #9852df35;border-color:#b07bea99;
+}
+.wardrobe-item{transition:border-color .3s ease,background-color .3s ease,box-shadow .35s ease}
+.wardrobe-item:hover{box-shadow:0 0 22px #8b50ca22}
+.nc-toast,.admin-toasts .admin-toast{box-shadow:0 0 25px #9c58e52b,0 12px 40px #0008}
+.admin-lock .admin-box{animation:menu-arrival .4s var(--menu-ease) both}
+@keyframes menu-arrival{from{opacity:0;transform:translateY(14px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
+@media(max-width:760px){.nav-scrim{transition:opacity .32s ease,visibility 0s linear .32s}.nav-scrim.open{transition-delay:0s}}
+@media(max-width:560px){.nc-window,.avatar-window,.purchase-window,.info-window,.admin-action-dialog{box-shadow:0 0 22px #9454df42,0 0 45px #783ac523,0 22px 60px #0009}.cabinet-nav,.account-card .card,.product-card,.panel{box-shadow:0 0 17px #8f4ce426,0 0 35px #7136be12}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+</style><script>
+(function(){
+ var startupError='';
+ function report(){var table=document.getElementById('players');if(!table||table.getAttribute('data-ready')==='true')return;var row=table.rows[0];if(row&&row.cells[0])row.cells[0].textContent='Список не загрузился. Сохранённые данные не удалялись.';var box=document.getElementById('accounts-status');if(box){box.hidden=false;box.textContent=startupError?'Ошибка запуска: '+startupError:'Не удалось запустить чтение аккаунтов. Обновите страницу и проверьте, что файл заменён целиком.';}}
+ window.addEventListener('error',function(e){startupError=e.message||'Ошибка интерфейса';setTimeout(report,0);});
+ document.addEventListener('DOMContentLoaded',function(){setTimeout(report,1200);});
+})();
+</script><link rel="stylesheet" href="scroll-reveal.css">
+<style id="nocturne-admin-motion">
+:root{--adm-ease:cubic-bezier(.22,1,.36,1)}
+html{scroll-behavior:smooth}
+body{animation:adm-page-in .55s var(--adm-ease) both}
+@keyframes adm-page-in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+main{max-width:1240px}
+.panel{transition:transform .35s var(--adm-ease),border-color .3s ease,box-shadow .4s ease,background .3s ease}
+.panel:hover{transform:translateY(-2px);border-color:#79569a;box-shadow:0 12px 38px #0004,0 0 24px #8952b51c}
+button{transition:transform .22s var(--adm-ease),filter .25s ease,box-shadow .3s ease,background .25s ease}
+button:hover{filter:brightness(1.14);box-shadow:0 5px 20px #8756c233}
+button:active{transform:scale(.975)}
+input,select{transition:border-color .25s ease,box-shadow .3s ease}
+input:focus,select:focus{outline:none;border-color:#b78be1;box-shadow:0 0 0 3px #a56ce522}
+tr{transition:background-color .2s ease}
+tbody tr:hover{background:#ffffff08}
+.admin-lock{animation:adm-lock-in .45s var(--adm-ease) both}
+.admin-box{animation:adm-box-in .55s var(--adm-ease) both}
+@keyframes adm-lock-in{from{opacity:0}to{opacity:1}}
+@keyframes adm-box-in{from{opacity:0;transform:translateY(18px) scale(.975)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+</style>
+<style id="nocturne-admin-refinement">
+/* Subtle admin polish: clear hierarchy, readable tables and restrained motion. */
+main{width:min(100%,1220px);padding:clamp(18px,3vw,36px)}
+main>h1{font-size:clamp(25px,3vw,34px);line-height:1.2;margin:0 0 22px;letter-spacing:-.045em}
+.panel{box-shadow:0 10px 30px #0002;transition:border-color .22s ease,box-shadow .25s ease,transform .25s ease}
+.panel:hover{border-color:#59416a;box-shadow:0 14px 34px #0003}
+.panel h2{letter-spacing:-.025em}
+thead th{position:sticky;top:0;z-index:1;background:#191323;color:#c9b3da;font-size:10px;letter-spacing:.045em;text-transform:uppercase}
+tbody tr{transition:background-color .18s ease}
+tbody tr:hover{background:#ffffff06}
+tbody td{vertical-align:middle;line-height:1.65}
+input,select{min-height:39px}
+button{min-height:36px;transition:background .2s ease,border-color .2s ease,filter .2s ease,transform .2s ease}
+button:active{transform:translateY(1px)}
+#key-name{flex:1 1 230px;min-width:min(230px,100%)}
+.admin-notice{line-height:1.75}
+@media(max-width:600px){main{padding:18px 12px}main>h1{font-size:25px}.panel{border-radius:12px}.players-heading{align-items:flex-start}}
+@media(prefers-reduced-motion:reduce){.panel,tbody tr,button{transition:none!important}.panel:hover,button:active{transform:none}}
+</style></head><body><main><div class="admin-notice"><strong>NOCTURNE · локальная демо-панель</strong><br>Данные доступны только в этом браузере. Пароль в HTML не защищает админ-панель. Не размещайте её в открытом доступе и не используйте для реальных платежей. <a href="index.html">Вернуться на сайт →</a></div><h1>NOCTURNE · Админ-панель</h1><div id="server-panel" class="panel server-panel"><div class="server-state"><span class="dot"></span><div><h2 id="server-title" style="margin:0">Сервер включён</h2><p id="server-hint" class="server-hint">Покупки и скачивание лаунчера доступны</p></div></div><button id="server-toggle" onclick="toggleServer()">Отключить сервер</button></div><div class="panel">
+  <div class="players-heading">
+    <h2>Игроки <span id="players-total">…</span></h2>
+    <div style="display:flex;gap:8px">
+      <button type="button" onclick="exportPlayersCSV()" style="font-size:11px;padding:7px 11px">Экспорт в CSV</button>
+      <button type="button" onclick="refreshAdmin()">Обновить список</button>
+    </div>
+  </div>
+  <p id="accounts-status" class="accounts-status" hidden></p>
+  <details class="storage-details"><summary>Где хранятся аккаунты?</summary><p id="storage-diagnostics">Проверка хранилища…</p></details>
+
+  <!-- Статистика в реальном времени -->
+  <div class="admin-stats-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:0 0 16px">
+    <div style="background:#130e22;border:1px solid #31234c;border-radius:10px;padding:12px">
+      <div style="font-size:11px;color:#a392ba;text-transform:uppercase;letter-spacing:.05em">Всего игроков</div>
+      <div id="stat-total-players" style="font-size:20px;font-weight:700;color:#f5efff;margin-top:3px">0</div>
+    </div>
+    <div style="background:#130e22;border:1px solid #31234c;border-radius:10px;padding:12px">
+      <div style="font-size:11px;color:#a392ba;text-transform:uppercase;letter-spacing:.05em">Активных подписок</div>
+      <div id="stat-active-subs" style="font-size:20px;font-weight:700;color:#7ee6bb;margin-top:3px">0</div>
+    </div>
+    <div style="background:#130e22;border:1px solid #31234c;border-radius:10px;padding:12px">
+      <div style="font-size:11px;color:#a392ba;text-transform:uppercase;letter-spacing:.05em">Суммарный баланс</div>
+      <div id="stat-total-balance" style="font-size:20px;font-weight:700;color:#e5c46d;margin-top:3px">0 ₽</div>
+    </div>
+    <div style="background:#130e22;border:1px solid #31234c;border-radius:10px;padding:12px">
+      <div style="font-size:11px;color:#a392ba;text-transform:uppercase;letter-spacing:.05em">Была подписка</div>
+      <div id="stat-had-subs" style="font-size:20px;font-weight:700;color:#ba8cf7;margin-top:3px">0</div>
+    </div>
+    <div style="background:#130e22;border:1px solid #31234c;border-radius:10px;padding:12px">
+      <div style="font-size:11px;color:#a392ba;text-transform:uppercase;letter-spacing:.05em">Ключи (свободно / всего)</div>
+      <div id="stat-keys-count" style="font-size:20px;font-weight:700;color:#85c2ff;margin-top:3px">0 / 0</div>
+    </div>
+  </div>
+
+
+  <div style="display:flex;gap:12px;margin:12px 0 16px;align-items:center;flex-wrap:wrap">
+    <input id="player-search" type="search" placeholder="Поиск игрока по логину или HWID…" oninput="render()" style="max-width:260px;font-size:12px;padding:8px 12px">
+    <div style="display:inline-flex;gap:5px;flex-wrap:wrap">
+      <button type="button" class="player-filter-btn" data-filter="all" onclick="setPlayerFilter('all', this)" style="padding:6px 11px;font-size:11px;background:#3b2454;color:#fff">Все (<span id="cnt-all">0</span>)</button>
+      <button type="button" class="player-filter-btn" data-filter="has_sub" onclick="setPlayerFilter('has_sub', this)" style="padding:6px 11px;font-size:11px;background:#20182d;color:#bca9d3">С подпиской (<span id="cnt-sub">0</span>)</button>
+      <button type="button" class="player-filter-btn" data-filter="had_sub" onclick="setPlayerFilter('had_sub', this)" style="padding:6px 11px;font-size:11px;background:#20182d;color:#bca9d3">Была подписка (<span id="cnt-hadsub">0</span>)</button>
+      <button type="button" class="player-filter-btn" data-filter="no_sub" onclick="setPlayerFilter('no_sub', this)" style="padding:6px 11px;font-size:11px;background:#20182d;color:#bca9d3">Без подписки (<span id="cnt-nosub">0</span>)</button>
+      <button type="button" class="player-filter-btn" data-filter="blocked" onclick="setPlayerFilter('blocked', this)" style="padding:6px 11px;font-size:11px;background:#20182d;color:#bca9d3">Заблокированные (<span id="cnt-block">0</span>)</button>
+    </div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Логин</th>
+        <th>Баланс</th>
+        <th>Подписка</th>
+        <th>HWID</th>
+        <th>Статус</th>
+        <th>Действия</th>
+      </tr>
+    </thead>
+    <tbody id="players"><tr><td colspan="6" class="muted">Загрузка сохранённых игроков…</td></tr></tbody>
+  </table>
+</div>
+
+<div class="panel emergency-panel">
+  <div class="players-heading">
+    <div>
+      <h2 style="margin:0;display:flex;align-items:center;gap:8px">
+        <span style="color:#f59e0b">⚡</span> Аварийная перевыдача и восстановление подписок
+      </h2>
+      <p class="muted" style="margin:4px 0 0;font-size:11px">Восстановление подписок после сбоев сервера, технических работ или компенсация дней владельцам</p>
+    </div>
+    <span id="emergency-affected-count" class="role-count" style="background:#3d2719;color:#fbbd63">0 подписчиков</span>
+  </div>
+
+  <div class="emergency-grid" style="display:grid;grid-template-columns:1.2fr 1fr;gap:18px;margin-top:16px;">
+    <!-- Левая колонка: Выбор режима -->
+    <div style="background:#130f1e;border:1px solid #2e2240;border-radius:10px;padding:16px;">
+      <label style="display:block;font-size:11.5px;font-weight:600;color:#cba6f7;margin-bottom:12px;text-transform:uppercase;letter-spacing:.05em">
+        Выберите тип операции:
+      </label>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <!-- Режим 1: Восстановить тем, у кого была подписка -->
+        <label style="display:flex;align-items:flex-start;gap:10px;font-size:12px;cursor:pointer;color:#ece4f5;padding:12px;border-radius:8px;background:#1a1429;border:1px solid #583880">
+          <input type="radio" name="em-main-action" value="restore_past_subs" checked onchange="updateEmergencyPreview()" style="margin-top:3px">
+          <div>
+            <b style="color:#7ee6bb;font-size:12.5px">⚡ Восстановить подписки ТОЛЬКО тем, у кого они были</b>
+            <div class="muted" style="font-size:11px;margin-top:4px;line-height:1.45">
+              Находит пользователей, которые покупали или имели подписку, и восстанавливает каждому ровно тот срок, который был (по истории ключей или прошлой подписке). <b>Игроки, у которых подписки никогда не было, НЕ затрагиваются!</b>
+            </div>
+          </div>
+        </label>
+
+        <!-- Режим 2: Добавить дни активным подписчикам -->
+        <label style="display:flex;align-items:flex-start;gap:10px;font-size:12px;cursor:pointer;color:#ece4f5;padding:12px;border-radius:8px;background:#141021;border:1px solid #2e2344">
+          <input type="radio" name="em-main-action" value="extend_active_subs" onchange="updateEmergencyPreview()" style="margin-top:3px">
+          <div>
+            <b>🎁 Добавить дни ТОЛЬКО активным подписчикам (+дни)</b>
+            <div class="muted" style="font-size:11px;margin-top:4px;line-height:1.45">
+              Прибавляет указанное количество дней к текущей активной подписке каждого подписчика (компенсация простоя).
+            </div>
+          </div>
+        </label>
+
+        <!-- Режим 3: Глобальная выдача всем пользователям -->
+        <label style="display:flex;align-items:flex-start;gap:10px;font-size:12px;cursor:pointer;color:#ece4f5;padding:12px;border-radius:8px;background:#141021;border:1px solid #2e2344">
+          <input type="radio" name="em-main-action" value="grant_all_users" onchange="updateEmergencyPreview()" style="margin-top:3px">
+          <div>
+            <b style="color:#f2aa6b">🌐 Выдать всем зарегистрированным пользователям</b>
+            <div class="muted" style="font-size:11px;margin-top:4px;line-height:1.45">
+              Выдаёт подписку абсолютно каждому аккаунту в базе, включая тех, у кого её никогда не было (для глобальных праздников или общего старта).
+            </div>
+          </div>
+        </label>
+      </div>
+    </div>
+
+    <!-- Правая колонка: Настройки дней и предпросмотр -->
+    <div style="background:#130f1e;border:1px solid #2e2240;border-radius:10px;padding:16px;display:flex;flex-direction:column;justify-content:space-between">
+      <div>
+        <label style="display:block;font-size:11.5px;font-weight:600;color:#cba6f7;margin-bottom:10px;text-transform:uppercase;letter-spacing:.05em">
+          Параметры и предпросмотр
+        </label>
+
+        <div id="em-days-selector-wrap" style="display:none;margin-bottom:14px">
+          <p style="font-size:11px;color:#a99ec0;margin:0 0 8px">Срок для начисления каждому игроку:</p>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+            <button type="button" class="em-preset-btn" onclick="setEmDays(1, this)" style="font-size:11px;padding:5px 9px">+1 день</button>
+            <button type="button" class="em-preset-btn" onclick="setEmDays(3, this)" style="font-size:11px;padding:5px 9px">+3 дня</button>
+            <button type="button" class="em-preset-btn" onclick="setEmDays(7, this)" style="font-size:11px;padding:5px 9px;background:#442563;color:#f3ecfb">+7 дней</button>
+            <button type="button" class="em-preset-btn" onclick="setEmDays(14, this)" style="font-size:11px;padding:5px 9px">+14 дней</button>
+            <button type="button" class="em-preset-btn" onclick="setEmDays(30, this)" style="font-size:11px;padding:5px 9px">+30 дней</button>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <input id="em-days-input" type="number" min="1" max="365" value="7" oninput="updateEmergencyPreview()" style="width:85px;height:34px;font-size:12px;padding:0 8px;border-radius:6px;background:#0d0b14;border:1px solid #3d2c52;color:#fff;text-align:center">
+            <span style="font-size:12px;color:#a99ec0">дней подписки</span>
+          </div>
+        </div>
+
+        <div id="em-preview-box" style="background:#0e0b17;border:1px solid #332348;border-radius:8px;padding:12px;font-size:11.5px;color:#d5c4ea;line-height:1.6">
+          <!-- Live details generated dynamically -->
+        </div>
+      </div>
+
+      <div style="margin-top:16px;display:flex;gap:10px;justify-content:flex-end">
+        <button type="button" onclick="confirmResetAllSubs()" style="font-size:11px;padding:8px 12px;background:#38131d;color:#ff9eaf;border:1px solid #6b2434">Аннулировать у всех</button>
+        <button type="button" id="em-submit-btn" onclick="executeEmergencyReissue()" style="font-size:12px;padding:9px 18px;background:linear-gradient(115deg,#8941cf,#5d22a6);color:#fff;border:1px solid #b779fa;font-weight:600;box-shadow:0 0 16px rgba(137,65,207,0.4)">⚡ Выполнить операцию</button>
+      </div>
+    </div>
+  </div>
+</div><div class="panel"><h2>Генерация ключа</h2><div class="actions"><input id="key-name" type="text" maxlength="48" placeholder="Название ключа (например, Заказ #1042)" aria-label="Название ключа" style="min-width:min(280px,100%)"><select id="days"><option value="7">7 дней — 59 ₽</option><option value="14">14 дней — 100 ₽</option><option value="30">30 дней — 200 ₽</option><option value="90">90 дней — 500 ₽</option><option value="180">180 дней — 800 ₽</option><option value="0">Сброс HWID — 99 ₽</option></select><button onclick="generateKey()">Сгенерировать</button></div><p id="generated" class="muted"></p></div><div class="panel">
+  <div class="players-heading">
+    <h2>Сгенерированные ключи <span id="keys-total" class="role-count">0</span></h2>
+    <div style="display:flex;gap:8px">
+      <button type="button" onclick="clearUsedKeys()" style="font-size:11px;padding:7px 11px">Очистить использованные</button>
+    </div>
+  </div>
+  <div id="keys-table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Ключ / Название</th>
+          <th>Тариф</th>
+          <th>Стоимость</th>
+          <th>Статус / Активация</th>
+          <th>Действия</th>
+        </tr>
+      </thead>
+      <tbody id="keys-table-body">
+        <tr><td colspan="5" class="muted">Ключей пока нет</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div><div class="panel promo-panel">
+  <div class="promo-heading">
+    <div>
+      <h2 style="margin:0">Генерация промокодов</h2>
+      <p class="muted" style="margin:4px 0 0;font-size:11px">Создание промокодов с выбором процента скидки для каталога и оформления заказа</p>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <span id="promo-count-badge" class="role-count">0 активных</span>
+      <button type="button" onclick="clearExpiredPromos()" style="font-size:11px;padding:7px 11px">Очистить неактивные</button>
+    </div>
+  </div>
+
+  <div class="promo-form-grid">
+    <div class="promo-field">
+      <label for="promo-code-input">Код промокода</label>
+      <div class="promo-code-input-group">
+        <input id="promo-code-input" type="text" placeholder="NOCTURNE-20" maxlength="24" autocomplete="off" style="text-transform:uppercase;font-family:monospace;letter-spacing:1px;font-weight:700">
+        <button type="button" class="promo-random-btn" onclick="generateRandomPromo()" title="Сгенерировать случайное имя">🎲 Случайный</button>
+      </div>
+    </div>
+
+    <div class="promo-field">
+      <label for="promo-discount-select">Скидка в процентах</label>
+      <div class="promo-discount-group">
+        <select id="promo-discount-select" onchange="toggleCustomDiscount(this.value)">
+          <option value="5">5% — символическая</option>
+          <option value="10">10% — базовая</option>
+          <option value="15">15% — стандарт</option>
+          <option value="20" selected>20% — популярная</option>
+          <option value="25">25% — четверть цены</option>
+          <option value="30">30% — спецпредложение</option>
+          <option value="40">40% — суперскидка</option>
+          <option value="50">50% — половина цены</option>
+          <option value="70">70% — распродажа</option>
+          <option value="custom">Свой процент…</option>
+        </select>
+        <input id="promo-discount-custom" type="number" min="1" max="99" placeholder="%" style="display:none;width:80px;text-align:center" value="20">
+      </div>
+    </div>
+
+    <div class="promo-field">
+      <label for="promo-limit-select">Лимит активаций</label>
+      <select id="promo-limit-select">
+        <option value="0">Бесконечно (многоразовый)</option>
+        <option value="1">1 раз (одноразовый)</option>
+        <option value="5">5 раз</option>
+        <option value="10">10 раз</option>
+        <option value="25">25 раз</option>
+        <option value="50">50 раз</option>
+        <option value="100">100 раз</option>
+      </select>
+    </div>
+
+    <div class="promo-field promo-action-cell">
+      <button type="button" class="promo-add-button" onclick="createPromo()">Создать промокод</button>
+    </div>
+  </div>
+
+  <div class="promo-filters-bar" style="display:flex;gap:10px;margin-bottom:14px;align-items:center;flex-wrap:wrap">
+    <input id="promo-search-input" type="search" placeholder="Поиск промокода…" oninput="renderPromos()" style="max-width:240px;padding:7px 12px;font-size:11px">
+    <div style="display:inline-flex;gap:4px">
+      <button type="button" class="promo-filter-btn" data-filter="all" onclick="setPromoFilter('all', this)" style="padding:6px 11px;font-size:11px;background:#35204c;color:#fff">Все</button>
+      <button type="button" class="promo-filter-btn" data-filter="active" onclick="setPromoFilter('active', this)" style="padding:6px 11px;font-size:11px;background:#241935">Только активные</button>
+      <button type="button" class="promo-filter-btn" data-filter="exhausted" onclick="setPromoFilter('exhausted', this)" style="padding:6px 11px;font-size:11px;background:#241935">Исчерпанные</button>
+    </div>
+  </div>
+
+  <div class="promo-table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Промокод</th>
+          <th>Скидка</th>
+          <th>Использования</th>
+          <th>Статус</th>
+          <th>Создан</th>
+          <th>Действия</th>
+        </tr>
+      </thead>
+      <tbody id="promo-table-body">
+        <tr><td colspan="6" class="muted">Загрузка промокодов…</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+<div class="panel audit-panel" style="margin-top:20px">
+  <div class="players-heading">
+    <div>
+      <h2 style="margin:0">Журнал действий администратора (Audit Log)</h2>
+      <p class="muted" style="margin:4px 0 0;font-size:11px">История всех ключевых операций: выдачи и аннулирования подписок, пополнения баланса, сброса HWID, промокодов</p>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <span id="log-count-badge" class="role-count">0 записей</span>
+      <button type="button" onclick="clearAdminLogs()" style="font-size:11px;padding:7px 11px">Очистить журнал</button>
+    </div>
+  </div>
+  <div style="max-height:280px;overflow-y:auto;border:1px solid #2e2240;border-radius:8px;margin-top:14px;background:#0d0a17">
+    <table>
+      <thead>
+        <tr>
+          <th style="width:160px">Время</th>
+          <th style="width:170px">Операция</th>
+          <th>Подробности</th>
+          <th style="width:110px">Статус</th>
+        </tr>
+      </thead>
+      <tbody id="audit-log-body">
+        <tr><td colspan="4" class="muted">Журнал пуст</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+</main><script>// Cosmetic roles are presentation only; they never grant administrator permissions.
+const ROLE_CATALOG={
+ 'Космический':{key:'cosmic',symbol:'✦',description:'Твоя орбита — твои правила.'},
+ 'Тень':{key:'shadow',symbol:'◈',description:'Тёмный стиль, узнаваемый характер.'},
+ 'Легенда':{key:'legend',symbol:'♛',description:'Оставь свой след в сообществе.'}
+};
+function equippedRoleOf(account){const name=account?.equippedRole;return Object.prototype.hasOwnProperty.call(ROLE_CATALOG,name)&&Array.isArray(account?.cosmetics)&&account.cosmetics.includes(name)?name:null;}
+function roleBadgeHTML(name){if(!Object.prototype.hasOwnProperty.call(ROLE_CATALOG,name))return '';const role=ROLE_CATALOG[name];return `<span class="role-badge role-${role.key}" aria-label="Роль: ${name}"><span class="role-symbol" aria-hidden="true">${role.symbol}</span>${name}</span>`;}
+</script><script>let adminStoragePersistent=true;
+const adminStorage=(()=>{try{const storage=window.localStorage;storage.getItem('nc_accounts');return storage;}catch{adminStoragePersistent=false;const m=new Map();return{getItem:k=>m.get(k)??null,setItem:(k,v)=>m.set(k,String(v)),removeItem:k=>m.delete(k)};}})();
+const prices={7:59,14:100,30:200,90:500,180:800,0:99};
+const noMotion=()=>typeof Element.prototype.animate!=='function'||(typeof matchMedia==='function'&&matchMedia('(prefers-reduced-motion: reduce)').matches);
+const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const rubles=value=>new Intl.NumberFormat('ru-RU',{style:'currency',currency:'RUB',maximumFractionDigits:2}).format(Number(value)||0);
+function readList(key){try{const a=JSON.parse(adminStorage.getItem(key)||'[]');return Array.isArray(a)?a:[];}catch{return[];}}
+let accountReadState={source:'none',error:'',skipped:0,count:0};
+function accounts(){
+ accountReadState={source:'none',error:'',skipped:0,count:0};
+ let raw,old;
+ try{raw=adminStorage.getItem('nc_accounts');old=adminStorage.getItem('nc_account');}
+ catch{accountReadState.error='Браузер запретил чтение локального хранилища.';return [];}
+ let list=[];
+ try{
+  if(raw!==null&&raw!==''){accountReadState.source='nc_accounts';const data=JSON.parse(raw);if(!Array.isArray(data))throw new Error('Формат nc_accounts отличается от списка аккаунтов.');list=data;}
+  else if(old!==null&&old!==''){accountReadState.source='nc_account';const data=JSON.parse(old);list=data?[data]:[];}
+ }catch{accountReadState.error='Не удалось прочитать сохранённый список. Исходные данные оставлены без изменений.';return [];}
+ const valid=list.filter(a=>a&&typeof a==='object'&&!Array.isArray(a)&&typeof a.nick==='string'&&a.nick.trim());
+ accountReadState.skipped=list.length-valid.length;accountReadState.count=valid.length;
+ if(accountReadState.skipped)accountReadState.error='Некоторые записи имеют неверный формат. Они не удалены; изменение балансов временно заблокировано.';
+ return valid;
+}
+function save(a){
+ accounts();if(accountReadState.error)throw new Error(accountReadState.error);
+ adminStorage.setItem('nc_accounts',JSON.stringify(a));render();adminExtras();
+}
+function safeMemberBadge(a){try{return roleBadgeHTML(equippedRoleOf(a));}catch{return '';}}
+function showAccountReadStatus(){
+ const state=accountReadState,count=document.getElementById('players-total'),status=document.getElementById('accounts-status'),details=document.getElementById('storage-diagnostics');
+ if(count)count.textContent=String(state.count);
+ if(status){status.hidden=!state.error&&state.count>0&&adminStoragePersistent&&state.source==='nc_accounts';status.textContent=state.error||(!adminStoragePersistent?'Хранилище браузера недоступно: открыт временный просмотр. Он не видит аккаунты основного сайта.':state.source==='nc_account'?'Показан аккаунт старого формата nc_account. Данные не перезаписаны.':state.count===0?'В хранилище этой страницы аккаунты не найдены. Откройте админку по прежнему адресу в том же браузере, где регистрировались игроки.':'');}
+ if(details)details.textContent='Хранилище: '+(adminStoragePersistent?'localStorage этого браузера':'временная память')+' · Источник: '+state.source+' · Прочитано: '+state.count+(state.skipped?' · Записей с ошибкой: '+state.skipped:'')+' · Адрес: '+(location.protocol==='file:'?'локальный файл '+decodeURI(location.pathname):location.origin)+'. Переименование или перенос файла, другой порт, домен или профиль браузера могут открыть другое хранилище.';
+}
+function refreshAdmin(){
+ try{render();adminExtras();}catch(error){const status=document.getElementById('accounts-status');if(status){status.hidden=false;status.textContent='Ошибка отображения: '+String(error.message||error)+'. Аккаунты не удалялись.';}const body=document.getElementById('players');if(body&&!body.dataset.ready){body.innerHTML='<tr><td colspan="6" class="muted">Не удалось загрузить список. Смотрите сообщение над таблицей.</td></tr>';}}
+}
+function serverEnabled(){return adminStorage.getItem('nc_server_enabled')!=='false';}
+// Compare the generated markup, not innerHTML: the browser serializes spaces as &nbsp;.
+// Unchanged rows must retain the same DOM nodes so clicks and keyboard focus survive refreshes.
+const renderedMarkup=new WeakMap();
+let playerPointerActive=false,playerRefreshPending=false;
+function setHTML(el,html){
+ if(!el||renderedMarkup.get(el)===html)return;
+ if(el.id==='players'&&playerPointerActive){playerRefreshPending=true;return;}
+ el.innerHTML=html;renderedMarkup.set(el,html);
+}
+function releasePlayerPointer(){playerPointerActive=false;setTimeout(()=>{if(playerRefreshPending&&!playerPointerActive){playerRefreshPending=false;render();}},0);}
+document.addEventListener('pointerdown',e=>{if(e.target instanceof Element&&e.target.closest('#players'))playerPointerActive=true;},true);
+document.addEventListener('pointerup',releasePlayerPointer,true);
+document.addEventListener('pointercancel',releasePlayerPointer,true);
+window.addEventListener('blur',releasePlayerPointer);
+
+// =============================================================================
+// NOCTURNE Журнал аудита действий администратора
+// =============================================================================
+function getAdminLogs() {
+  try {
+    const raw = adminStorage.getItem('nc_admin_logs');
+    return raw ? JSON.parse(raw) : [];
+  } catch { return []; }
+}
+
+function logAdminAction(action, details, status = 'Успешно') {
+  const logs = getAdminLogs();
+  const d = new Date();
+  const timeStr = d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', second: '2-digit' }) + ' ' + d.toLocaleDateString('ru-RU');
+  logs.unshift({
+    time: timeStr,
+    action: String(action),
+    details: String(details),
+    status: String(status),
+    timestamp: Date.now()
+  });
+  if (logs.length > 200) logs.length = 200;
+  adminStorage.setItem('nc_admin_logs', JSON.stringify(logs));
+  renderAdminLogs();
+}
+
+function clearAdminLogs() {
+  adminStorage.setItem('nc_admin_logs', '[]');
+  renderAdminLogs();
+  notify('Журнал действий администратора очищен.', 'info', 'Журнал очищен');
+}
+
+function renderAdminLogs() {
+  const body = document.getElementById('audit-log-body');
+  if (!body) return;
+  const logs = getAdminLogs();
+  const countBadge = document.getElementById('log-count-badge');
+  if (countBadge) countBadge.textContent = `${logs.length} записей`;
+  if (!logs.length) {
+    body.innerHTML = '<tr><td colspan="4" class="muted">Журнал действий пуст</td></tr>';
+    return;
+  }
+  body.innerHTML = logs.slice(0, 60).map(l => `<tr>
+    <td style="font-family:monospace;font-size:11px;color:#ba9cd9">${esc(l.time)}</td>
+    <td><b>${esc(l.action)}</b></td>
+    <td style="font-size:12px;color:#d5c2ea">${esc(l.details)}</td>
+    <td><span style="display:inline-block;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:600;background:#1e4736;color:#7ee6bb">${esc(l.status)}</span></td>
+  </tr>`).join('');
+}
+
+// =============================================================================
+// Поиск, фильтры и экспорт игроков
+// =============================================================================
+let currentPlayerFilter = 'all';
+
+function setPlayerFilter(filter, btn) {
+  currentPlayerFilter = filter;
+  document.querySelectorAll('.player-filter-btn').forEach(b => {
+    const isActive = (b === btn) || (b.dataset.filter === filter);
+    b.style.background = isActive ? '#3b2454' : '#20182d';
+    b.style.color = isActive ? '#fff' : '#bca9d3';
+    b.style.borderColor = isActive ? '#8153ae' : '#452d5e';
+  });
+  render();
+}
+
+function getHistoricalSubDays(account, keysList) {
+  const now = Date.now();
+  // 1. Из lastSubscription (сохранен при покупке или прошлой выдаче)
+  if (account.lastSubscription) {
+    if (Number(account.lastSubscription.days) > 0) return Number(account.lastSubscription.days);
+    if (Number(account.lastSubscription.tariffDays) > 0) return Number(account.lastSubscription.tariffDays);
+    const m = String(account.lastSubscription.name || '').match(/(\d+)\s*дн/i);
+    if (m) return parseInt(m[1], 10);
+  }
+  // 2. Из текущей или истекшей subscription
+  if (account.subscription) {
+    if (Number(account.subscription.days) > 0) return Number(account.subscription.days);
+    const m = String(account.subscription.name || '').match(/(\d+)\s*дн/i);
+    if (m) return parseInt(m[1], 10);
+    if (Number(account.subscription.until) > now) {
+      return Math.max(1, Math.ceil((Number(account.subscription.until) - now) / 86400000));
+    }
+  }
+  // 3. Из истории активаций ключей nc_keys
+  const keys = keysList || readList('nc_keys');
+  const userKeys = keys.filter(k => k.usedBy === account.nick && Number(k.days) > 0);
+  if (userKeys.length > 0) {
+    const latestKey = userKeys[userKeys.length - 1];
+    return Number(latestKey.days) || 7;
+  }
+  return 0;
+}
+
+function hasSubscriptionHistory(account, keysList) {
+  const now = Date.now();
+  if (account.subscription && (Number(account.subscription.until) > now || Number(account.subscription.days) > 0 || account.subscription.name)) {
+    return true;
+  }
+  if (account.lastSubscription && (Number(account.lastSubscription.days) > 0 || account.lastSubscription.name)) {
+    return true;
+  }
+  const keys = keysList || readList('nc_keys');
+  return keys.some(k => k.usedBy === account.nick && Number(k.days) > 0);
+}
+
+function exportPlayersCSV() {
+  const list = accounts();
+  if (!list.length) {
+    notify('В базе данных нет игроков для выгрузки.', 'info', 'Экспорт CSV');
+    return;
+  }
+  const now = Date.now();
+  const keys = readList('nc_keys');
+  const headers = ['Логин', 'Баланс (руб)', 'Статус подписки', 'Дней осталось', 'Действует до', 'HWID', 'Блокировка', 'Была подписка'];
+  
+  const rows = list.map(a => {
+    const hasSub = a.subscription && Number(a.subscription.until) > now;
+    const daysLeft = hasSub ? Math.ceil((Number(a.subscription.until) - now) / 86400000) : 0;
+    const untilDate = hasSub ? new Date(Number(a.subscription.until)).toLocaleDateString('ru-RU') : '';
+    const hadPast = hasSubscriptionHistory(a, keys);
+    
+    return [
+      `"${String(a.nick || '').replace(/"/g, '""')}"`,
+      Number(a.balance) || 0,
+      `"${hasSub ? String(a.subscription.name || 'Активна').replace(/"/g, '""') : 'Нет'}"`,
+      daysLeft,
+      `"${untilDate}"`,
+      `"${String(a.hwid || '—').replace(/"/g, '""')}"`,
+      `"${a.blocked ? 'Заблокирован' : 'Активен'}"`,
+      `"${hadPast ? 'Да' : 'Нет'}"`
+    ].join(';');
+  });
+
+  const csvContent = '\uFEFF' + headers.join(';') + '\r\n' + rows.join('\r\n');
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'nocturne-players-' + new Date().toISOString().slice(0, 10) + '.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  logAdminAction('Экспорт в CSV', `Выгружен список ${list.length} игроков в CSV`);
+  notify(`Экспортировано ${list.length} игроков в файл CSV.`, 'success', 'Экспорт завершён');
+}
+
+// =============================================================================
+// Сервер, рендер и уведомления
+// =============================================================================
+function renderServer() {
+  const on = serverEnabled(), p = document.getElementById('server-panel');
+  if (p) p.classList.toggle('off', !on);
+  const t = document.getElementById('server-title');
+  if (t) t.textContent = on ? 'Сервер включён' : 'Сервер отключён';
+  const h = document.getElementById('server-hint');
+  if (h) h.textContent = on ? 'Покупки и скачивание лаунчера доступны' : 'Лаунчер, покупки и сброс HWID временно заблокированы';
+  const b = document.getElementById('server-toggle');
+  if (b) b.textContent = on ? 'Отключить сервер' : 'Включить сервер';
+}
+
+function toggleServer() {
+  const on = !serverEnabled();
+  adminStorage.setItem('nc_server_enabled', String(on));
+  renderServer();
+  logAdminAction('Управление сервером', on ? 'Сервер включён (покупки и лаунчер активны)' : 'Сервер переведён в режим техобслуживания');
+  notify(on ? 'Покупки и скачивание снова доступны.' : 'Покупки и скачивание временно приостановлены.', on ? 'success' : 'info', on ? 'Система снова в сети' : 'Режим технических работ');
+}
+
+function render() {
+  const members = accounts();
+  showAccountReadStatus();
+  const now = Date.now();
+  const keys = readList('nc_keys');
+
+  // Подсчёт статистики для вкладок и дашборда
+  const cntAll = members.length;
+  const cntSub = members.filter(a => a.subscription && Number(a.subscription.until) > now).length;
+  const cntHadSub = members.filter(a => hasSubscriptionHistory(a, keys)).length;
+  const cntNoSub = members.filter(a => !hasSubscriptionHistory(a, keys)).length;
+  const cntBlock = members.filter(a => a.blocked).length;
+
+  const elCntAll = document.getElementById('cnt-all'); if (elCntAll) elCntAll.textContent = cntAll;
+  const elCntSub = document.getElementById('cnt-sub'); if (elCntSub) elCntSub.textContent = cntSub;
+  const elCntHad = document.getElementById('cnt-hadsub'); if (elCntHad) elCntHad.textContent = cntHadSub;
+  const elCntNo = document.getElementById('cnt-nosub'); if (elCntNo) elCntNo.textContent = cntNoSub;
+  const elCntBlk = document.getElementById('cnt-block'); if (elCntBlk) elCntBlk.textContent = cntBlock;
+
+  // Обновление карточек статистики дашборда
+  const totalBalance = members.reduce((sum, a) => sum + (Number(a.balance) || 0), 0);
+  const activeKeysCount = keys.filter(k => !k.used).length;
+
+  const elStatPlayers = document.getElementById('stat-total-players');
+  if (elStatPlayers) elStatPlayers.textContent = String(members.length);
+
+  const elStatSubs = document.getElementById('stat-active-subs');
+  if (elStatSubs) {
+    const pct = members.length ? Math.round((cntSub / members.length) * 100) : 0;
+    elStatSubs.innerHTML = `${cntSub} <small style="font-size:12px;color:#927b9f;font-weight:400">(${pct}%)</small>`;
+  }
+
+  const elStatBal = document.getElementById('stat-total-balance');
+  if (elStatBal) elStatBal.textContent = rubles(totalBalance);
+
+  const elStatHad = document.getElementById('stat-had-subs');
+  if (elStatHad) elStatHad.textContent = String(cntHadSub);
+
+  const elStatKeys = document.getElementById('stat-keys-count');
+  if (elStatKeys) elStatKeys.textContent = `${activeKeysCount} / ${keys.length}`;
+
+  // Фильтрация
+  let filtered = members.slice();
+  if (currentPlayerFilter === 'has_sub') {
+    filtered = filtered.filter(a => a.subscription && Number(a.subscription.until) > now);
+  } else if (currentPlayerFilter === 'had_sub') {
+    filtered = filtered.filter(a => hasSubscriptionHistory(a, keys));
+  } else if (currentPlayerFilter === 'no_sub') {
+    filtered = filtered.filter(a => !hasSubscriptionHistory(a, keys));
+  } else if (currentPlayerFilter === 'blocked') {
+    filtered = filtered.filter(a => a.blocked);
+  }
+
+  // Поиск по логину и HWID
+  const searchInput = document.getElementById('player-search');
+  const searchVal = searchInput ? searchInput.value.trim().toLowerCase() : '';
+  if (searchVal) {
+    filtered = filtered.filter(a =>
+      String(a.nick || '').toLowerCase().includes(searchVal) ||
+      String(a.hwid || '').toLowerCase().includes(searchVal)
+    );
+  }
+
+  const playersTotal = document.getElementById('players-total');
+  if (playersTotal) {
+    playersTotal.textContent = (filtered.length !== members.length)
+      ? `(${filtered.length} из ${members.length})`
+      : `${members.length}`;
+  }
+
+  const tableBody = document.getElementById('players');
+  if (tableBody) {
+    if (!filtered.length) {
+      tableBody.innerHTML = '<tr><td colspan="6" class="muted">' +
+        (searchVal || currentPlayerFilter !== 'all' ? 'Игроки по заданному фильтру или запросу не найдены.' : (accountReadState.error ? 'Список не прочитан. Данные не изменены.' : 'В этом хранилище нет игроков.')) +
+        '</td></tr>';
+    } else {
+      tableBody.innerHTML = filtered.map(a => {
+        const hasSub = a.subscription && Number(a.subscription.until) > now;
+        let subCol = '<span class="muted">Нет</span>';
+        if (hasSub) {
+          const daysLeft = Math.ceil((Number(a.subscription.until) - now) / 86400000);
+          subCol = `<span style="color:#7ee6bb;font-weight:600">● ${esc(a.subscription.name)}</span> <small class="muted" style="font-size:11px">(${daysLeft} дн.)</small>`;
+        } else if (hasSubscriptionHistory(a, keys)) {
+          const histDays = getHistoricalSubDays(a, keys);
+          subCol = `<span class="muted" style="font-size:11px" title="Была подписка ранее">Была: ${esc(a.lastSubscription?.name || (histDays ? histDays + ' дн.' : 'Истекла'))}</span>`;
+        }
+
+        const hwidDisplay = a.hwid
+          ? `<span onclick="copyText('${esc(a.hwid)}', 'HWID скопирован')" style="cursor:pointer;font-family:monospace;font-size:11px;color:#c0a8d4;text-decoration:underline dashed 1px #644682" title="Нажмите, чтобы скопировать HWID">${esc(a.hwid)}</span>`
+          : '—';
+
+        return `<tr>
+          <td>
+            <div class="admin-member">
+              <b onclick="copyText('${esc(a.nick)}', 'Логин скопирован')" style="cursor:pointer" title="Нажмите, чтобы скопировать логин">${esc(a.nick)}</b>${safeMemberBadge(a)}
+            </div>
+          </td>
+          <td>${esc(rubles(a.balance))}</td>
+          <td>${subCol}</td>
+          <td>${hwidDisplay}</td>
+          <td class="${a.blocked ? 'danger' : ''}">${a.blocked ? '<b>Заблокирован</b>' : '<span style="color:#8bb7f0">Активен</span>'}</td>
+          <td>
+            <div class="actions">
+              <button type="button" data-member="${esc(a.nick)}" data-admin-action="grantSub" ${accountReadState.error ? 'disabled' : ''} style="background:#55308a;border-color:#7f48cc">Подписка</button>
+              <button type="button" data-member="${esc(a.nick)}" data-admin-action="money" ${accountReadState.error ? 'disabled' : ''}>Баланс</button>
+              <button type="button" data-member="${esc(a.nick)}" data-admin-action="pass" ${accountReadState.error ? 'disabled' : ''} style="background:#281e3d;border-color:#5a3f87">Пароль</button>
+              <button type="button" data-member="${esc(a.nick)}" data-admin-action="hwid" ${accountReadState.error ? 'disabled' : ''}>Сброс HWID</button>
+              <button type="button" data-member="${esc(a.nick)}" data-admin-action="block" ${accountReadState.error ? 'disabled' : ''}>${a.blocked ? 'Разблок' : 'Блок'}</button>
+              ${hasSub ? `<button type="button" data-member="${esc(a.nick)}" data-admin-action="removeSub" class="danger" style="background:#4a1523;color:#ff9eaf;border:1px solid #7c2438">Снять подписку</button>` : ''}
+            </div>
+          </td>
+        </tr>`;
+      }).join('');
+    }
+    tableBody.dataset.ready = 'true';
+  }
+
+  renderServer();
+  renderKeys();
+  renderPromos();
+  renderAdminLogs();
+  updateEmergencyPreview();
+}
+
+// Stacked, keyboard-accessible notifications with timed progress and hover/focus pause.
+function notify(text,type='success',title){
+ if(!['success','error','info'].includes(type))type='info';
+ let stack=document.getElementById('admin-toasts');if(!stack){stack=document.createElement('div');stack.id='admin-toasts';stack.className='admin-toasts';stack.setAttribute('aria-label','Уведомления администратора');document.body.appendChild(stack);}
+ while(stack.children.length>=4)stack.firstElementChild.dismiss?.(true);
+ const n=document.createElement('div');n.className='admin-toast '+type;n.setAttribute('role',type==='error'?'alert':'status');n.setAttribute('aria-atomic','true');
+ const paths={success:'<path d="m5 12 4 4L19 6"/>',error:'<path d="M12 7v6m0 4h.01"/><circle cx="12" cy="12" r="9"/>',info:'<path d="m12 3 2.7 6.3L21 12l-6.3 2.7L12 21l-2.7-6.3L3 12l6.3-2.7z"/>'};
+ n.innerHTML='<span class="toast-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+paths[type]+'</svg></span><div class="toast-copy"><span class="toast-label">NOCTURNE · ADMIN</span><strong></strong><p></p></div><button class="toast-close" aria-label="Закрыть уведомление">×</button><div class="toast-track" aria-hidden="true"><span class="toast-progress"></span></div>';
+ n.querySelector('strong').textContent=title||({success:'Готово',error:'Не удалось выполнить',info:'Обратите внимание'}[type]);n.querySelector('p').textContent=text;stack.appendChild(n);
+ if(!noMotion())n.animate([{opacity:0,transform:'translateY(-10px) scale(.98)'},{opacity:1,transform:'none'}],{duration:300,easing:'cubic-bezier(.22,1,.36,1)'});
+ const lifetime=6500,progress=noMotion()?null:n.querySelector('.toast-progress').animate([{transform:'scaleX(1)'},{transform:'scaleX(0)'}],{duration:lifetime,fill:'forwards'});let remaining=lifetime,started=performance.now(),timer,closing=false;const pauses=new Set();
+ const arm=()=>{started=performance.now();timer=setTimeout(()=>n.dismiss(),remaining);};
+ n.dismiss=(instant=false)=>{if(closing&&!instant)return;closing=true;clearTimeout(timer);progress?.cancel();if(instant||noMotion()){n.remove();return;}n.animate([{opacity:1,transform:'none'},{opacity:0,transform:'translateX(14px)'}],{duration:180,easing:'ease-in',fill:'forwards'}).finished.then(()=>n.remove()).catch(()=>n.remove());};
+ const pause=reason=>{if(pauses.has(reason))return;if(!pauses.size){remaining=Math.max(0,remaining-(performance.now()-started));clearTimeout(timer);progress?.pause();}pauses.add(reason);};
+ const resume=reason=>{pauses.delete(reason);if(!pauses.size&&!closing){progress?.play();arm();}};
+ n.addEventListener('mouseenter',()=>pause('hover'));n.addEventListener('mouseleave',()=>resume('hover'));n.addEventListener('focusin',()=>pause('focus'));n.addEventListener('focusout',e=>{if(!n.contains(e.relatedTarget))resume('focus');});n.querySelector('button').onclick=()=>n.dismiss();arm();return n;
+}
+
+let actionDialog=null;
+function openAdminAction({title,description,html,submitLabel='Подтвердить',onSubmit,onReady,symbol='✦'}){
+ if(actionDialog){
+  if(actionDialog.overlay.isConnected&&!actionDialog.overlay.hidden&&getComputedStyle(actionDialog.overlay).display!=='none'){
+   (actionDialog.form.querySelector('input,textarea')||actionDialog.form).focus({preventScroll:true});return;
+  }
+  actionDialog=null;document.querySelector('main').inert=false;document.body.style.overflow='';
+ }
+ const previous=document.activeElement,overlay=document.createElement('div');overlay.className='admin-action-overlay';overlay.innerHTML='<form class="admin-action-dialog" role="dialog" aria-modal="true" aria-labelledby="admin-action-title" novalidate><button type="button" class="admin-action-close" aria-label="Закрыть окно">×</button><div class="admin-action-symbol" aria-hidden="true"></div><h2 id="admin-action-title"></h2><p class="dialog-caption"></p><div class="admin-action-fields"></div><p id="admin-action-error" class="admin-action-error" role="alert"></p><div class="admin-action-buttons"><button type="button" class="cancel">Отмена</button><button type="submit" class="confirm"></button></div><p class="admin-action-footnote">Локальное действие · изменения сохраняются только в этом браузере.</p></form>';
+ const form=overlay.querySelector('form');form.querySelector('.admin-action-symbol').textContent=symbol;form.querySelector('h2').textContent=title;form.querySelector('.dialog-caption').textContent=description;form.querySelector('.admin-action-fields').innerHTML=html;form.querySelector('.confirm').textContent=submitLabel;document.body.appendChild(overlay);actionDialog={overlay,form,previous,closing:false};document.querySelector('main').inert=true;document.body.style.overflow='hidden';
+ if(!noMotion()){overlay.animate([{opacity:0},{opacity:1}],{duration:220});form.animate([{transform:'translateY(16px) scale(.98)'},{transform:'none'}],{duration:340,easing:'cubic-bezier(.22,1,.36,1)'});}
+ const first=form.querySelector('input,textarea')||form.querySelector('button');first.focus({preventScroll:true});if(first.select)first.select();
+ const error=text=>{form.querySelector('#admin-action-error').textContent=text;const input=form.querySelector('input,textarea');input?.setAttribute('aria-invalid','true');input?.focus({preventScroll:true});};
+ form.querySelectorAll('.cancel,.admin-action-close').forEach(b=>b.onclick=closeAdminAction);overlay.onclick=e=>{if(e.target===overlay)closeAdminAction();};form.onsubmit=e=>{e.preventDefault();if(form.dataset.busy==='true'||actionDialog?.closing)return;form.dataset.busy='true';try{const result=onSubmit(form,error);if(result!==false)closeAdminAction();else form.dataset.busy='false';}catch(problem){form.dataset.busy='false';error(problem.message||'Не удалось сохранить изменения.');}};onReady?.(form);
+}
+
+function closeAdminAction(){
+ if(!actionDialog||actionDialog.closing)return;
+ const state=actionDialog;state.closing=true;let completed=false,timer;
+ const finish=()=>{if(completed)return;completed=true;clearTimeout(timer);state.overlay.remove();if(actionDialog!==state)return;actionDialog=null;document.querySelector('main').inert=false;document.body.style.overflow='';let focus=state.previous;if(!focus?.isConnected&&focus?.dataset?.adminAction){focus=[...document.querySelectorAll('[data-admin-action]')].find(b=>b.dataset.adminAction===state.previous.dataset.adminAction&&b.dataset.member===state.previous.dataset.member);}if(focus?.isConnected)focus.focus({preventScroll:true});};
+ if(noMotion()){finish();return;}
+ timer=setTimeout(finish,280);
+ try{state.overlay.animate([{opacity:1},{opacity:0}],{duration:180,fill:'forwards'}).finished?.then(finish).catch(finish);}catch{finish();}
+}
+
+
+function money(n) {
+  const member = accounts().find(a => String(a.nick) === String(n));
+  if (!member) {
+    notify('Игрок не найден. Обновите список аккаунтов.', 'error', 'Не удалось открыть управление балансом');
+    return;
+  }
+  n = member.nick;
+  const current = Number(member.balance) || 0;
+
+  openAdminAction({
+    title: 'Управление балансом',
+    description: 'Игрок: ' + n + ' · Текущий баланс: ' + rubles(current),
+    symbol: '₽',
+    submitLabel: 'Применить операцию',
+    html: `
+      <div style="display:flex;gap:8px;margin-bottom:12px">
+        <label style="flex:1;display:flex;align-items:center;gap:6px;font-size:11px;padding:7px 8px;border-radius:6px;background:#201530;border:1px solid #482f6e;cursor:pointer">
+          <input type="radio" name="bal-mode" value="add" checked> Пополнить (+)
+        </label>
+        <label style="flex:1;display:flex;align-items:center;gap:6px;font-size:11px;padding:7px 8px;border-radius:6px;background:#201530;border:1px solid #482f6e;cursor:pointer">
+          <input type="radio" name="bal-mode" value="sub"> Списать (-)
+        </label>
+        <label style="flex:1;display:flex;align-items:center;gap:6px;font-size:11px;padding:7px 8px;border-radius:6px;background:#201530;border:1px solid #482f6e;cursor:pointer">
+          <input type="radio" name="bal-mode" value="set"> Установить (=)
+        </label>
+      </div>
+
+      <label for="admin-amount">Сумма операции</label>
+      <div class="money-field">
+        <input id="admin-amount" name="amount" inputmode="decimal" value="100" autocomplete="off" aria-describedby="admin-action-error" maxlength="12">
+        <span>₽</span>
+      </div>
+
+      <div class="money-presets" style="margin-top:10px">
+        <button type="button" data-amount="50">50 ₽</button>
+        <button type="button" data-amount="100">100 ₽</button>
+        <button type="button" data-amount="500">500 ₽</button>
+        <button type="button" data-amount="1000">1 000 ₽</button>
+      </div>
+
+      <div class="money-summary" style="margin-top:14px">
+        <div><span>Текущий баланс</span><strong>${esc(rubles(current))}</strong></div>
+        <div><span>После операции</span><strong id="admin-balance-preview"></strong></div>
+      </div>
+    `,
+    onReady: form => {
+      const input = form.querySelector('#admin-amount');
+      const getMode = () => form.querySelector('input[name="bal-mode"]:checked')?.value || 'add';
+
+      const update = () => {
+        input.removeAttribute('aria-invalid');
+        form.querySelector('#admin-action-error').textContent = '';
+        const mode = getMode();
+        const amount = Number(input.value.replace(',', '.'));
+        const preview = form.querySelector('#admin-balance-preview');
+
+        if (!Number.isFinite(amount) || amount < 0) {
+          preview.textContent = '—';
+          return;
+        }
+
+        let newBal = current;
+        if (mode === 'add') newBal = current + amount;
+        else if (mode === 'sub') newBal = Math.max(0, current - amount);
+        else if (mode === 'set') newBal = amount;
+
+        preview.textContent = rubles(newBal);
+      };
+
+      input.addEventListener('input', update);
+      form.querySelectorAll('input[name="bal-mode"]').forEach(r => r.addEventListener('change', update));
+      form.querySelectorAll('[data-amount]').forEach(b => b.onclick = () => {
+        input.value = b.dataset.amount;
+        update();
+        input.focus({ preventScroll: true });
+      });
+      update();
+    },
+    onSubmit: (form, error) => {
+      const raw = form.querySelector('#admin-amount').value.trim().replace(',', '.');
+      const amount = Number(raw);
+      const mode = form.querySelector('input[name="bal-mode"]:checked')?.value || 'add';
+
+      if (!/^\d+(?:\.\d{1,2})?$/.test(raw) || !Number.isFinite(amount) || amount < 0 || amount > 1000000) {
+        error('Введите корректную сумму от 0 до 1 000 000 ₽, не более двух знаков после запятой.');
+        return false;
+      }
+
+      const list = accounts();
+      const a = list.find(x => x.nick === n);
+      if (!a) {
+        error('Этот аккаунт больше не существует.');
+        return false;
+      }
+
+      let newBal = Number(a.balance) || 0;
+      let logDesc = '';
+
+      if (mode === 'add') {
+        newBal = (Math.round(newBal * 100) + Math.round(amount * 100)) / 100;
+        logDesc = `Пополнение: +${rubles(amount)}`;
+      } else if (mode === 'sub') {
+        newBal = Math.max(0, (Math.round(newBal * 100) - Math.round(amount * 100)) / 100);
+        logDesc = `Списание: -${rubles(amount)}`;
+      } else if (mode === 'set') {
+        newBal = Math.round(amount * 100) / 100;
+        logDesc = `Установка баланса: ${rubles(amount)}`;
+      }
+
+      a.balance = newBal;
+      save(list);
+      logAdminAction('Изменение баланса', `Игрок: ${n}, ${logDesc}, итоговый баланс: ${rubles(newBal)}`);
+      notify(`Баланс игрока ${n} обновлён.\nНовый баланс: ${rubles(newBal)}`, 'success', 'Баланс сохранён');
+      return true;
+    }
+  });
+}
+
+
+function pass(n) {
+  const member = accounts().find(a => String(a.nick) === String(n));
+  if (!member) {
+    notify('Игрок не найден. Обновите список аккаунтов.', 'error', 'Не удалось открыть смену пароля');
+    return;
+  }
+  openAdminAction({
+    title: 'Сменить пароль игрока',
+    description: 'Игрок: ' + n,
+    symbol: '🔑',
+    submitLabel: 'Сохранить новый пароль',
+    html: `
+      <label for="admin-new-pass">Новый пароль</label>
+      <div style="display:flex;gap:8px;margin-bottom:12px">
+        <input id="admin-new-pass" name="new_pass" type="text" placeholder="Введите пароль…" autocomplete="off" style="flex:1" maxlength="64">
+        <button type="button" id="admin-gen-pass" style="font-size:11px;padding:8px 12px;background:#2b1b3b;border:1px solid #5d3d7d;color:#d8bcf5;border-radius:6px;cursor:pointer;white-space:nowrap">🎲 Сгенерировать</button>
+      </div>
+      <p style="font-size:11px;color:#ba9cd9;line-height:1.5;margin:0">
+        После сохранения игрок сможет войти в личный кабинет только с новым паролем.
+      </p>
+    `,
+    onReady: form => {
+      const input = form.querySelector('#admin-new-pass');
+      const genBtn = form.querySelector('#admin-gen-pass');
+      if (genBtn && input) {
+        genBtn.onclick = () => {
+          const chars = 'abcdefghijkmnpqrstuvwxyz23456789!#%*';
+          let gen = '';
+          for (let i = 0; i < 10; i++) gen += chars[Math.floor(Math.random() * chars.length)];
+          input.value = gen;
+          input.focus();
+        };
+      }
+    },
+    onSubmit: (form, error) => {
+      const newPass = form.querySelector('#admin-new-pass').value.trim();
+      if (!newPass || newPass.length < 3) {
+        error('Пароль должен содержать минимум 3 символа.');
+        return false;
+      }
+      const list = accounts();
+      const a = list.find(x => x.nick === n);
+      if (!a) {
+        error('Этот аккаунт больше не существует.');
+        return false;
+      }
+      a.pass = newPass;
+      save(list);
+      logAdminAction('Смена пароля', `Игрок: ${n} (пароль изменён администратором)`);
+      notify(`Пароль для игрока ${n} успешно изменён!`, 'success', 'Пароль обновлён');
+      return true;
+    }
+  });
+}
+
+
+function copyText(str, title = 'Скопировано') {
+  if (!str) return;
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(str).then(() => {
+      notify(str, 'success', title);
+    }).catch(() => {
+      notify(str, 'info', title);
+    });
+  } else {
+    notify(str, 'info', title);
+  }
+}
+
+function hwid(n){
+  const list=accounts(),a=list.find(x=>x.nick===n);
+  if(!a)return;
+  a.hwid='';
+  save(list);
+  logAdminAction('Сброс HWID', `Игрок: ${n}`);
+  notify('Привязка игрока '+n+' к устройству удалена.','success','HWID сброшен');
+}
+
+function block(n){
+  const list=accounts(),a=list.find(x=>x.nick===n);
+  if(!a)return;
+  a.blocked=!a.blocked;
+  save(list);
+  logAdminAction(a.blocked ? 'Блокировка аккаунта' : 'Разблокировка аккаунта', `Игрок: ${n}`);
+  notify(a.blocked?'Доступ игрока '+n+' ограничен.':'Игрок '+n+' снова может пользоваться аккаунтом.',a.blocked?'info':'success',a.blocked?'Аккаунт заблокирован':'Аккаунт разблокирован');
+}
+
+function extendRustexSub(account, days) {
+  const now = Date.now();
+  const currentUntil = account.subscription && Number(account.subscription.until) > now ? Number(account.subscription.until) : now;
+  const until = currentUntil + Number(days) * 86400000;
+  const totalDays = Math.max(0, Math.ceil((until - now) / 86400000));
+  account.subscription = { name: 'RustexOrg · ' + totalDays + ' дней', days: totalDays, until: until };
+  account.lastSubscription = { name: account.subscription.name, days: Number(days), until: until, updatedAt: now };
+  return totalDays;
+}
+
+function grantSub(n) {
+  const member = accounts().find(a => String(a.nick) === String(n));
+  if (!member) {
+    notify('Игрок не найден. Обновите список аккаунтов.', 'error', 'Не удалось открыть выдачу');
+    return;
+  }
+  const now = Date.now();
+  const hasSub = member.subscription && Number(member.subscription.until) > now;
+  const currentUntilStr = hasSub ? new Date(Number(member.subscription.until)).toLocaleDateString('ru-RU') : 'нет активной подписки';
+
+  openAdminAction({
+    title: 'Выдать подписку игроку',
+    description: `Игрок: ${member.nick} (${hasSub ? 'Продление: до ' + currentUntilStr : 'Новая подписка'})`,
+    symbol: '👑',
+    submitLabel: 'Начислить подписку',
+    html: `
+      <label for="admin-sub-days">Количество дней подписки</label>
+      <div class="money-field">
+        <input id="admin-sub-days" name="sub_days" type="number" min="1" max="3650" value="30" autocomplete="off" aria-describedby="admin-action-error">
+        <span>дней</span>
+      </div>
+      <div class="money-presets" style="display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 14px">
+        <button type="button" data-sub="1">1 дн</button>
+        <button type="button" data-sub="7">7 дн</button>
+        <button type="button" data-sub="14">14 дн</button>
+        <button type="button" data-sub="30">30 дн</button>
+        <button type="button" data-sub="90">90 дн</button>
+        <button type="button" data-sub="180">180 дн</button>
+        <button type="button" data-sub="365">1 год</button>
+      </div>
+      <div class="money-summary">
+        <div><span>Текущая подписка</span><strong>${esc(hasSub ? member.subscription.name : 'Отсутствует')}</strong></div>
+        <div><span>Будет действовать</span><strong id="admin-sub-preview"></strong></div>
+      </div>
+    `,
+    onReady: form => {
+      const input = form.querySelector('#admin-sub-days');
+      const update = () => {
+        input.removeAttribute('aria-invalid');
+        form.querySelector('#admin-action-error').textContent = '';
+        const d = parseInt(input.value, 10);
+        if (Number.isFinite(d) && d > 0) {
+          const baseUntil = (member.subscription && Number(member.subscription.until) > now) ? Number(member.subscription.until) : now;
+          const newUntil = new Date(baseUntil + d * 86400000).toLocaleDateString('ru-RU');
+          const totalDays = Math.ceil(((baseUntil + d * 86400000) - now) / 86400000);
+          form.querySelector('#admin-sub-preview').textContent = `${totalDays} дн. (до ${newUntil})`;
+        } else {
+          form.querySelector('#admin-sub-preview').textContent = '—';
+        }
+      };
+      input.addEventListener('input', update);
+      form.querySelectorAll('[data-sub]').forEach(b => b.onclick = () => {
+        input.value = b.dataset.sub;
+        update();
+        input.focus({ preventScroll: true });
+      });
+      update();
+    },
+    onSubmit: (form, error) => {
+      const d = parseInt(form.querySelector('#admin-sub-days').value, 10);
+      if (isNaN(d) || d < 1 || d > 3650) {
+        error('Укажите количество дней от 1 до 3650.');
+        return false;
+      }
+      const list = accounts();
+      const a = list.find(x => x.nick === member.nick);
+      if (!a) {
+        error('Этот аккаунт больше не существует.');
+        return false;
+      }
+      const totalDays = extendRustexSub(a, d);
+      save(list);
+      logAdminAction('Выдача подписки', `Игрок: ${a.nick}, начислено: +${d} дн. (всего: ${totalDays} дн.)`);
+      notify(`Игроку ${a.nick} выдана подписка на ${d} дн. (Всего: ${totalDays} дн.)`, 'success', 'Подписка начислена');
+      return true;
+    }
+  });
+}
+
+function removeSub(n) {
+  const list = accounts(), a = list.find(x => x.nick === n);
+  if (!a) return;
+  if (!a.subscription || Number(a.subscription.until) <= Date.now()) {
+    notify('У игрока ' + n + ' нет активной подписки.', 'info');
+    return;
+  }
+  openAdminAction({
+    title: 'Снять подписку',
+    description: 'Игрок: ' + n + ' · ' + (a.subscription.name || 'Активная подписка'),
+    symbol: '✕',
+    submitLabel: 'Аннулировать подписку',
+    html: '<p style="color:#ff9eaf;font-size:12px;line-height:1.6;margin:0 0 12px">Внимание: текущая подписка игрока <b>' + esc(n) + '</b> будет аннулирована. Доступ к лаунчеру будет закрыт.</p>',
+    onSubmit: () => {
+      const currentList = accounts(), target = currentList.find(x => x.nick === n);
+      if (!target) return false;
+      target.lastSubscription = target.subscription ? { ...target.subscription } : null;
+      target.subscription = null;
+      save(currentList);
+      logAdminAction('Снятие подписки', `Игрок: ${n} (подписка аннулирована)`);
+      notify('Подписка игрока ' + n + ' успешно аннулирована.', 'success', 'Подписка снята');
+      return true;
+    }
+  });
+}
+
+// =============================================================================
+// NOCTURNE Аварийная перевыдача и восстановление подписок
+// =============================================================================
+function setEmDays(d, btn) {
+  const inp = document.getElementById('em-days-input');
+  if (inp) inp.value = d;
+  document.querySelectorAll('.em-preset-btn').forEach(b => {
+    b.style.background = (b === btn) ? '#442563' : '';
+    b.style.color = (b === btn) ? '#f3ecfb' : '';
+  });
+  updateEmergencyPreview();
+}
+
+function updateEmergencyPreview() {
+  const list = accounts();
+  const keys = readList('nc_keys');
+  const now = Date.now();
+
+  document.querySelectorAll('input[name="em-main-action"]').forEach(inp => {
+    const lbl = inp.closest('label');
+    if (lbl) {
+      lbl.style.background = inp.checked ? '#1f1633' : '#141021';
+      lbl.style.borderColor = inp.checked ? '#8e54d8' : '#2e2344';
+    }
+  });
+
+  const actionRadio = document.querySelector('input[name="em-main-action"]:checked');
+  const action = actionRadio ? actionRadio.value : 'restore_past_subs';
+
+  const daysWrap = document.getElementById('em-days-selector-wrap');
+  const daysInp = document.getElementById('em-days-input');
+  const days = Math.max(1, parseInt(daysInp ? daysInp.value || '7' : '7', 10));
+
+  let affected = [];
+  let modeTitle = '';
+  let detailsText = '';
+
+  if (action === 'restore_past_subs') {
+    if (daysWrap) daysWrap.style.display = 'none';
+    affected = list.filter(a => hasSubscriptionHistory(a, keys));
+    const nonAffectedCount = list.length - affected.length;
+    modeTitle = '⚡ Восстановление подписок прошлым владельцам';
+    detailsText = `
+      • Режим: <b style="color:#7ee6bb">Только тем, у кого была подписка</b><br>
+      • Получателей: <b style="color:#7ee6bb">${affected.length} игроков</b> (активные или прошлые подписчики)<br>
+      • Игроков без подписки (пропущены): <b style="color:#a99ec0">${nonAffectedCount} чел. (подписка НЕ выдаётся)</b><br>
+      • Срок: <b>каждому восстанавливается его тариф / срок (по истории покупок и ключей)</b>
+    `;
+  } else if (action === 'extend_active_subs') {
+    if (daysWrap) daysWrap.style.display = 'block';
+    affected = list.filter(a => a.subscription && Number(a.subscription.until) > now);
+    const nonSubCount = list.length - affected.length;
+    modeTitle = `🎁 Продление активных (+${days} дней)`;
+    detailsText = `
+      • Режим: <b style="color:#ba8cf7">Продление активных подписчиков</b><br>
+      • Получателей: <b style="color:#7ee6bb">${affected.length} активных подписчиков</b><br>
+      • Без активной подписки (пропущены): <b style="color:#a99ec0">${nonSubCount} чел.</b><br>
+      • Начисление: <b>+${days} дней к текущему окончанию</b>
+    `;
+  } else if (action === 'grant_all_users') {
+    if (daysWrap) daysWrap.style.display = 'block';
+    affected = list.slice();
+    modeTitle = `🌐 Глобальная выдача всем (+${days} дней)`;
+    detailsText = `
+      • Режим: <b style="color:#f2aa6b">Глобальная выдача абсолютно ВСЕМ</b><br>
+      • Получателей: <b style="color:#f2aa6b">${affected.length} игроков (100% базы)</b><br>
+      • Начисление: <b>+${days} дней каждому аккаунту</b>
+    `;
+  }
+
+  const countBadge = document.getElementById('emergency-affected-count');
+  if (countBadge) {
+    countBadge.textContent = `${affected.length} игроков получат`;
+  }
+
+  const previewBox = document.getElementById('em-preview-box');
+  if (previewBox) {
+    previewBox.innerHTML = `
+      <div style="font-weight:600;margin-bottom:6px;color:#cba6f7">${modeTitle}</div>
+      ${detailsText}
+    `;
+  }
+}
+
+function executeEmergencyReissue() {
+  const list = accounts();
+  const keys = readList('nc_keys');
+  const now = Date.now();
+
+  const action = document.querySelector('input[name="em-main-action"]:checked')?.value || 'restore_past_subs';
+  const days = Math.max(1, parseInt(document.getElementById('em-days-input')?.value || '7', 10));
+
+  let affected = [];
+  let summaryTitle = '';
+  let descriptionText = '';
+
+  if (action === 'restore_past_subs') {
+    affected = list.filter(a => hasSubscriptionHistory(a, keys));
+    const nonAffectedCount = list.length - affected.length;
+    summaryTitle = 'Восстановление подписок прошлым владельцам';
+    descriptionText = `
+      Восстановить подписки <b>${affected.length} игрокам</b>, которые имели подписку ранее.<br>
+      <span style="color:#7ee6bb">Каждому игроку будет начислен ровно тот срок, который был у него в истории!</span><br>
+      <span style="color:#a99ec0">Игроки без истории подписки (${nonAffectedCount} чел.) будут полностью пропущены и подписку не получат.</span>
+    `;
+  } else if (action === 'extend_active_subs') {
+    affected = list.filter(a => a.subscription && Number(a.subscription.until) > now);
+    summaryTitle = `Продление активных подписок на +${days} дней`;
+    descriptionText = `
+      Продлить подписку на <b>+${days} дней</b> для <b>${affected.length} активных подписчиков</b>.<br>
+      Остальные ${list.length - affected.length} игроков без активной подписки затронуты не будут.
+    `;
+  } else if (action === 'grant_all_users') {
+    affected = list.slice();
+    summaryTitle = `Глобальная выдача ВСЕМ пользователям на +${days} дней`;
+    descriptionText = `
+      Выдать подписку на <b>+${days} дней</b> абсолютно всем <b>${affected.length} пользователям</b> базы данных!
+    `;
+  }
+
+  if (!affected.length) {
+    notify('Нет пользователей, подходящих под выбранный режим (0 аккаунтов).', 'info', 'Операция отменена');
+    return;
+  }
+
+  openAdminAction({
+    title: 'Подтверждение операции',
+    description: `Будет затронуто: ${affected.length} игроков`,
+    symbol: '⚡',
+    submitLabel: 'Да, выполнить операцию',
+    html: `
+      <p style="font-size:12px;color:#e8ddf5;line-height:1.6;margin:0 0 12px">
+        ${descriptionText}
+      </p>
+      <div style="background:#140e21;border:1px solid #36264d;border-radius:8px;padding:10px 12px;font-size:11px;color:#ba9cd9;line-height:1.6">
+        • Затронутых аккаунтов: <b>${affected.length}</b><br>
+        • Всего в базе: <b>${list.length}</b><br>
+        • Дата операции: <b>${new Date().toLocaleString('ru-RU')}</b>
+      </div>
+    `,
+    onSubmit: () => {
+      const currentList = accounts();
+      const currentKeys = readList('nc_keys');
+      let restoredCount = 0;
+
+      affected.forEach(targetUser => {
+        const u = currentList.find(x => x.nick === targetUser.nick);
+        if (!u) return;
+
+        if (action === 'restore_past_subs') {
+          const pastDays = getHistoricalSubDays(u, currentKeys) || 7;
+          extendRustexSub(u, pastDays);
+          restoredCount++;
+        } else if (action === 'extend_active_subs') {
+          extendRustexSub(u, days);
+          restoredCount++;
+        } else if (action === 'grant_all_users') {
+          extendRustexSub(u, days);
+          restoredCount++;
+        }
+      });
+
+      save(currentList);
+      logAdminAction('Аварийная операция подписок', `Режим: ${action}, обновлено игроков: ${restoredCount} (из ${currentList.length})`);
+      render();
+      notify(`Операция успешно завершена! Обновлено игроков: ${restoredCount}.`, 'success', 'Подписки начислены');
+      return true;
+    }
+  });
+}
+
+function confirmResetAllSubs() {
+  const list = accounts();
+  const subbed = list.filter(a => a.subscription && Number(a.subscription.until) > Date.now());
+
+  if (!subbed.length) {
+    notify('В базе нет пользователей с активными подписками.', 'info');
+    return;
+  }
+
+  openAdminAction({
+    title: 'Аннулировать ВСЕ подписки',
+    description: `Будет сброшено: ${subbed.length} активных подписок`,
+    symbol: '✕',
+    submitLabel: 'Аннулировать все подписки',
+    html: `
+      <p style="color:#ff9eaf;font-size:12px;line-height:1.6;margin:0 0 12px">
+        <b>ВНИМАНИЕ!</b> Это действие аннулирует активную подписку у всех <b>${subbed.length} подписчиков</b> в базе данных сайта. Доступ к лаунчеру будет немедленно закрыт.
+      </p>
+    `,
+    onSubmit: () => {
+      const currentList = accounts();
+      currentList.forEach(a => {
+        if (a.subscription && Number(a.subscription.until) > Date.now()) {
+          a.lastSubscription = { ...a.subscription };
+          a.subscription = null;
+        }
+      });
+      save(currentList);
+      logAdminAction('Массовый сброс подписок', `Аннулировано активных подписок: ${subbed.length}`);
+      render();
+      notify(`Все ${subbed.length} подписок успешно аннулированы. История сохранена.`, 'info', 'Сброс завершён');
+      return true;
+    }
+  });
+}
+
+function disableKey(code){const keys=readList('nc_keys'),k=keys.find(x=>x.code===code);if(!k)return;k.used=true;k.usedBy='ЗАБЛОКИРОВАН';adminStorage.setItem('nc_keys',JSON.stringify(keys));render();notify('Ключ '+code+' больше нельзя активировать.','info','Ключ отключён');}
+function generateKey(){
+ const d=Number(document.getElementById('days').value);
+ if(!Object.prototype.hasOwnProperty.call(prices,d))return;
+ const nameInput=document.getElementById('key-name');
+ const keyName=(nameInput?.value||'').trim().slice(0,48);
+ const alphabet='ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+ const randomBlock=()=>{const bytes=new Uint8Array(4);crypto.getRandomValues(bytes);return [...bytes].map(v=>alphabet[v%alphabet.length]).join('');};
+ const keys=readList('nc_keys');
+ let code,attempts=0;
+ do{code=`NC-${randomBlock()}-${randomBlock()}`;attempts++;}while(keys.some(x=>x.code===code)&&attempts<100);
+ if(keys.some(x=>x.code===code)){notify('Не удалось создать уникальный ключ. Повторите попытку.','error','Ошибка');return;}
+ const k={code,name:keyName||'Без названия',days:d,price:prices[d],used:false,createdAt:Date.now(),activatedAt:null,usedBy:null};keys.push(k);adminStorage.setItem('nc_keys',JSON.stringify(keys));document.getElementById('generated').textContent='Новый ключ: '+k.code;if(nameInput)nameInput.value='';render();logAdminAction('Генерация ключа', `Ключ: ${k.code}, название: ${k.name}, тариф: ${d ? d + ' дн.' : 'HWID'}`);
+notify(k.code+'\n'+(d?'Подписка на '+d+' дней.':'Сброс привязки к устройству.'),'success','Ключ создан');}
+
+// =============================================================================
+// NOCTURNE Управление промокодами (скидки в %, генерация, лимиты, сохранение)
+// =============================================================================
+const DEFAULT_PROMOS = [];
+
+function getPromos() {
+  try {
+    const raw = adminStorage.getItem('nc_promos');
+    if (!raw) return [];
+    const list = JSON.parse(raw);
+    return Array.isArray(list) ? list : [];
+  } catch {
+    return [];
+  }
+}
+
+function savePromos(list) {
+  adminStorage.setItem('nc_promos', JSON.stringify(list));
+  renderPromos();
+}
+
+function toggleCustomDiscount(val) {
+  const custom = document.getElementById('promo-discount-custom');
+  if (custom) custom.style.display = (val === 'custom') ? 'inline-block' : 'none';
+}
+
+function generateRandomPromo() {
+  const prefixes = ['NOCTURNE', 'COSMIC', 'NEON', 'VOID', 'SHADOW', 'SPACE', 'GIFT', 'SALE'];
+  const p = prefixes[Math.floor(Math.random() * prefixes.length)];
+  const num = Math.floor(10 + Math.random() * 89);
+  const input = document.getElementById('promo-code-input');
+  if (input) {
+    input.value = `${p}-${num}`;
+    input.focus();
+  }
+}
+
+function createPromo() {
+  const codeEl = document.getElementById('promo-code-input');
+  const discSelect = document.getElementById('promo-discount-select');
+  const discCustom = document.getElementById('promo-discount-custom');
+  const limitEl = document.getElementById('promo-limit-select');
+
+  let code = (codeEl ? codeEl.value : '').trim().toUpperCase().replace(/[^A-Z0-9_-]/g, '');
+  if (!code) {
+    notify('Введите код промокода или нажмите «🎲 Случайный».', 'error', 'Ошибка ввода');
+    return;
+  }
+
+  let discount = (discSelect.value === 'custom') ? Number(discCustom.value) : Number(discSelect.value);
+  if (isNaN(discount) || discount < 1 || discount > 99) {
+    notify('Скидка должна быть в диапазоне от 1% до 99%.', 'error', 'Некорректная скидка');
+    return;
+  }
+
+  const usesMax = Number(limitEl.value) || 0;
+  const list = getPromos();
+
+  if (list.some(p => p.code.toUpperCase() === code)) {
+    notify(`Промокод «${code}» уже существует в списке!`, 'error', 'Дубликат');
+    return;
+  }
+
+  const promo = {
+    code: code,
+    discount: discount,
+    usesMax: usesMax,
+    usedCount: 0,
+    active: true,
+    createdAt: Date.now()
+  };
+
+  list.unshift(promo);
+  savePromos(list);
+  if (codeEl) codeEl.value = '';
+
+  logAdminAction('Создание промокода', `Код: ${code}, скидка: -${discount}%, лимит: ${usesMax === 0 ? 'Без лимита' : usesMax}`);
+  notify(`Промокод ${code} (-${discount}%) успешно создан!`, 'success', 'Промокод добавлен');
+}
+
+function deletePromo(code) {
+  let list = getPromos();
+  list = list.filter(p => p.code !== code);
+  savePromos(list);
+  logAdminAction('Удаление промокода', `Код: ${code}`);
+  notify(`Промокод «${code}» удалён.`, 'info', 'Промокод удалён');
+}
+
+function togglePromoStatus(code) {
+  let list = getPromos();
+  const p = list.find(x => x.code === code);
+  if (p) {
+    p.active = !p.active;
+    savePromos(list);
+    notify(`Промокод ${code} ${p.active ? 'включён' : 'приостановлен'}.`, 'info', 'Статус изменён');
+  }
+}
+
+function copyPromoText(code) {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(code).then(() => {
+      notify(`Промокод ${code} скопирован в буфер!`, 'success', 'Скопировано');
+    });
+  } else {
+    notify(`Код промокода: ${code}`, 'info', 'Промокод');
+  }
+}
+
+let currentPromoFilter = 'all';
+
+function setPromoFilter(filter, btn) {
+  currentPromoFilter = filter;
+  document.querySelectorAll('.promo-filter-btn').forEach(b => {
+    b.style.background = (b === btn) ? '#35204c' : '#241935';
+    b.style.color = (b === btn) ? '#fff' : '#b3a1c6';
+  });
+  renderPromos();
+}
+
+function addPromoUses(code, count) {
+  let list = getPromos();
+  const p = list.find(x => x.code === code);
+  if (p) {
+    if (p.usesMax === 0) {
+      notify(`Промокод «${code}» уже многоразовый!`, 'info', 'Без лимита');
+      return;
+    }
+    p.usesMax = Math.max(p.usedCount, p.usesMax) + count;
+    p.active = true;
+    savePromos(list);
+    notify(`К промокоду ${code} добавлено +${count} активаций (новый лимит: ${p.usesMax})!`, 'success', 'Лимит продлён');
+  }
+}
+
+function clearExpiredPromos() {
+  let list = getPromos();
+  const initial = list.length;
+  list = list.filter(p => p.active && (p.usesMax === 0 || p.usedCount < p.usesMax));
+  const diff = initial - list.length;
+  savePromos(list);
+  notify(`Удалено неактивных / исчерпанных промокодов: ${diff}`, 'info', 'Список очищен');
+}
+
+function renderPromos() {
+  let list = getPromos();
+  const badge = document.getElementById('promo-count-badge');
+  const activeCount = list.filter(p => p.active && (p.usesMax === 0 || p.usedCount < p.usesMax)).length;
+  if (badge) badge.textContent = `${activeCount} активных / ${list.length} всего`;
+
+  const searchEl = document.getElementById('promo-search-input');
+  const query = searchEl ? searchEl.value.trim().toUpperCase() : '';
+  if (query) {
+    list = list.filter(p => p.code.toUpperCase().includes(query));
+  }
+
+  if (currentPromoFilter === 'active') {
+    list = list.filter(p => p.active && (p.usesMax === 0 || p.usedCount < p.usesMax));
+  } else if (currentPromoFilter === 'exhausted') {
+    list = list.filter(p => !p.active || (p.usesMax > 0 && p.usedCount >= p.usesMax));
+  }
+
+  const body = document.getElementById('promo-table-body');
+  if (!body) return;
+
+  if (!list.length) {
+    body.innerHTML = '<tr><td colspan="6" class="muted">Созданных промокодов пока нет</td></tr>';
+    return;
+  }
+
+  body.innerHTML = list.map(p => {
+    const isExhausted = p.usesMax > 0 && p.usedCount >= p.usesMax;
+    const statusText = !p.active ? '<span style="color:#f28ba0">Приостановлен</span>' : isExhausted ? '<span style="color:#d8aa62">Исчерпан</span>' : '<span style="color:#7ee6bb">Активен</span>';
+    const usesText = p.usesMax === 0 ? `Многоразовый (${p.usedCount})` : `${p.usedCount} / ${p.usesMax}`;
+    const dateStr = new Date(p.createdAt || Date.now()).toLocaleDateString('ru-RU');
+
+    return `<tr>
+      <td><span class="promo-badge">${esc(p.code)}</span></td>
+      <td><span class="promo-discount-tag">-${p.discount}%</span></td>
+      <td>${esc(usesText)}</td>
+      <td>${statusText}</td>
+      <td class="muted">${dateStr}</td>
+      <td>
+        <div class="actions" style="gap:5px">
+          <button type="button" class="promo-copy-btn" onclick="copyPromoText('${esc(p.code)}')">Копировать</button>
+          ${isExhausted ? `<button type="button" class="promo-copy-btn" style="background:#283a2c;color:#85ebaf" onclick="addPromoUses('${esc(p.code)}', 10)">+10 мест</button>` : ''}
+          <button type="button" class="promo-toggle-btn" onclick="togglePromoStatus('${esc(p.code)}')">${p.active ? 'Пауза' : 'Вкл'}</button>
+          <button type="button" class="promo-del-btn" onclick="deletePromo('${esc(p.code)}')">Удалить</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function renderKeys() {
+  const keys = readList('nc_keys');
+  const countBadge = document.getElementById('keys-total');
+  const activeCount = keys.filter(k => !k.used).length;
+  if (countBadge) countBadge.textContent = `${activeCount} активных / ${keys.length} всего`;
+
+  const body = document.getElementById('keys-table-body');
+  if (!body) return;
+
+  if (!keys.length) {
+    body.innerHTML = '<tr><td colspan="5" class="muted">Сгенерированных ключей пока нет</td></tr>';
+    return;
+  }
+
+  body.innerHTML = keys.slice().reverse().map(k => {
+    const isUsed = !!k.used;
+    const activatedAt = k.activatedAt ? new Date(k.activatedAt).toLocaleString('ru-RU') : '';
+    const createdAt = k.createdAt ? new Date(k.createdAt).toLocaleString('ru-RU') : '—';
+    const isBlocked = k.usedBy === 'ЗАБЛОКИРОВАН';
+    const statusHtml = isBlocked
+      ? `<span style="color:#f08b9d;font-weight:600">Заблокирован</span><small style="display:block;color:#92809e;margin-top:4px">Создан: ${esc(createdAt)}</small>`
+      : isUsed
+        ? `<span style="color:#ba9cd9">Активирован: <b>${esc(k.usedBy || 'Игрок')}</b></span><small style="display:block;color:#92809e;margin-top:4px">${esc(activatedAt || 'Время не записано')}</small>${k.promo ? ` <small class="promo-discount-tag" style="padding:1px 5px;font-size:9px">скидка по ${esc(k.promo)}</small>` : ''}`
+        : `<span style="color:#7ee6bb;font-weight:600">● Свободен</span><small style="display:block;color:#92809e;margin-top:4px">Создан: ${esc(createdAt)}</small>`;
+
+    const tariff = k.days ? `${k.days} дней` : 'Сброс HWID';
+    const priceText = k.price ? rubles(k.price) : '0 ₽';
+
+    return `<tr>
+      <td><span class="promo-badge" style="font-size:11px">${esc(k.code)}</span><b style="display:block;margin-top:6px;font-size:11px">${esc(k.name || 'Без названия')}</b></td>
+      <td><b>${esc(tariff)}</b></td>
+      <td>${esc(priceText)}</td>
+      <td>${statusHtml}</td>
+      <td>
+        <div class="actions" style="gap:5px">
+          <button type="button" class="promo-copy-btn" onclick="copyKeyText('${esc(k.code)}')">Копировать</button>
+          ${!isUsed ? `<button type="button" class="promo-toggle-btn" onclick="disableKey('${esc(k.code)}')">Блок</button>` : ''}
+          <button type="button" class="promo-del-btn" onclick="deleteKey('${esc(k.code)}')">Удалить</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function copyKeyText(code) {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(code).then(() => {
+      notify(`Ключ ${code} скопирован в буфер!`, 'success', 'Скопировано');
+    });
+  } else {
+    notify(`Ключ: ${code}`, 'info', 'Ключ');
+  }
+}
+
+function deleteKey(code) {
+  let keys = readList('nc_keys');
+  keys = keys.filter(k => k.code !== code);
+  adminStorage.setItem('nc_keys', JSON.stringify(keys));
+  render();
+  notify(`Ключ ${code} удалён.`, 'info', 'Ключ удалён');
+}
+
+function clearUsedKeys() {
+  let keys = readList('nc_keys');
+  const initial = keys.length;
+  keys = keys.filter(k => !k.used);
+  const diff = initial - keys.length;
+  adminStorage.setItem('nc_keys', JSON.stringify(keys));
+  render();
+  notify(`Очищено использованных ключей: ${diff}`, 'success', 'Список ключей обновлён');
+}
+function adminExtras(){let panel=document.getElementById('admin-chat');if(!panel){panel=document.createElement('div');panel.id='admin-chat';panel.className='panel';panel.innerHTML='<h2 class="admin-chat-heading">Чат <small>ЛОКАЛЬНОЕ ДЕМО</small></h2><div id="admin-chat-list"></div><h2>Поддержка</h2><div id="admin-support-list"></div>';document.querySelector('main').appendChild(panel);}const members=new Map(accounts().map(a=>[a.nick,a]));setHTML(document.getElementById('admin-chat-list'),readList('nc_chat').slice(-100).map(m=>`<div class="admin-chat-message"><div class="chat-msg-header"><b>${esc(m.nick)}</b>${safeMemberBadge(members.get(m.nick))}</div><p>${esc(m.text)}</p></div>`).join('')||'<p class="muted">Сообщений нет</p>');setHTML(document.getElementById('admin-support-list'),readList('nc_support').map((m,i)=>`<div class="support-entry"><b>${esc(m.nick)}</b><p>${esc(m.text)}</p>${m.reply?'<p class="support-reply">Ответ администратора: '+esc(m.reply)+'</p>':''}<button data-reply-index="${i}">Ответить</button></div>`).join('')||'<p class="muted">Обращений нет</p>');}
+function replySupport(i){const entry=readList('nc_support')[i];if(!entry)return;openAdminAction({title:'Ответить игроку',description:entry.nick+' · '+entry.text,symbol:'↗',submitLabel:'Сохранить ответ',html:'<label for="admin-reply">Твой ответ</label><textarea id="admin-reply" maxlength="2000" aria-describedby="admin-action-error" placeholder="Напишите ответ…">'+esc(entry.reply||'')+'</textarea>',onSubmit:(form,error)=>{const text=form.querySelector('textarea').value.trim();if(!text){error('Напишите ответ перед отправкой.');return false;}const list=readList('nc_support');const found=list[i];if(!found||found.nick!==entry.nick||found.time!==entry.time){error('Обращение изменилось. Откройте его заново.');return false;}found.reply=text;adminStorage.setItem('nc_support',JSON.stringify(list));adminExtras();notify('Ответ для '+entry.nick+' сохранён в локальном обращении.','success','Ответ сохранён');return true;}});}
+function exportBackup(){const data={accounts:adminStorage.getItem('nc_accounts')||'[]',keys:adminStorage.getItem('nc_keys')||'[]',promos:adminStorage.getItem('nc_promos')||'[]',chat:adminStorage.getItem('nc_chat')||'[]',support:adminStorage.getItem('nc_support')||'[]',logs:adminStorage.getItem('nc_admin_logs')||'[]',server:adminStorage.getItem('nc_server_enabled')||'true',createdAt:new Date().toISOString()};const url=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'})),a=document.createElement('a');a.href=url;a.download='nocturne-backup-'+new Date().toISOString().slice(0,10)+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);notify('Аккаунты, промокоды, ключи и сообщения сохранены.','success','Резервная копия скачана');}
+document.addEventListener('click',e=>{const b=e.target.closest('[data-admin-action]');if(b&&!b.disabled){try{({money,hwid,block,removeSub,grantSub,pass}[b.dataset.adminAction])?.(b.dataset.member);}catch(problem){notify(problem.message||'Не удалось прочитать аккаунт.','error');}}const r=e.target.closest('[data-reply-index]');if(r)replySupport(Number(r.dataset.replyIndex));});
+document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.id==='adminPass'){e.preventDefault();document.getElementById('adminLogin')?.click();}if(!actionDialog)return;if(e.key==='Escape'){e.preventDefault();closeAdminAction();}if(e.key==='Tab'){const elements=[...actionDialog.form.querySelectorAll('button,input,textarea')].filter(el=>!el.disabled&&el.getClientRects().length);const first=elements[0],last=elements[elements.length-1];if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}}});
+window.addEventListener('storage',refreshAdmin);
+const tools=document.createElement('div');tools.className='panel';tools.innerHTML='<h2>Инструменты администратора</h2><p class="muted">Сохраните копию аккаунтов, ролей, ключей, чата и настроек сервера.</p><button onclick="exportBackup()">Скачать резервную копию</button>';document.querySelector('main').appendChild(tools);
+refreshAdmin();setInterval(refreshAdmin,3000);
+
+// Close the entry panel as softly as the other menus, with a timeout fallback.
+function closeAdminLock(lock){
+ if(!lock||lock.dataset.closing==='true')return;
+ lock.dataset.closing='true';let completed=false,timer;
+ const finish=()=>{if(completed)return;completed=true;clearTimeout(timer);lock.remove();};
+ if(noMotion()){finish();return;}
+ timer=setTimeout(finish,320);
+ try{lock.animate([{opacity:1},{opacity:0}],{duration:240,easing:'ease-in',fill:'forwards'}).finished.then(finish).catch(finish);}catch{finish();}
+}
+</script><script src="scroll-reveal.js"></script></body></html>
