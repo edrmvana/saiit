@@ -19,7 +19,14 @@ body.staff-locked main {
   align-items: center;
   justify-content: center;
   padding: 20px;
-  background: radial-gradient(ellipse at 50% 0, #381f52aa, transparent 65%), #07050ec9;
+  background-color: #07050e;
+  background-image:
+    radial-gradient(ellipse at 50% 6%, #381f52a6, transparent 62%),
+    linear-gradient(180deg, #07050e70, #07050ecc 55%, #07050ef5),
+    url('assets/ton618-hero.webp');
+  background-size: auto, auto, cover;
+  background-position: center, center, center 42%;
+  background-repeat: no-repeat;
   backdrop-filter: blur(14px);
   animation: staff-lock-in .22s ease-out;
 }
