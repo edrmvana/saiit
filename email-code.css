@@ -1,0 +1,361 @@
+/* NOCTURNE · окно подтверждения почты и демо-ящик */
+
+body.nc-mail-lock {
+  overflow: hidden;
+}
+
+.nc-mail-modal,
+.nc-mail-inbox {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  background: rgba(6, 3, 12, .72);
+  backdrop-filter: blur(6px);
+  opacity: 0;
+  transition: opacity .18s ease;
+}
+
+.nc-mail-modal[hidden],
+.nc-mail-inbox[hidden] {
+  display: none;
+}
+
+.nc-mail-modal.show,
+.nc-mail-inbox.show {
+  opacity: 1;
+}
+
+.nc-mail-window,
+.nc-mail-inbox-window {
+  position: relative;
+  width: min(430px, 100%);
+  padding: 26px 24px 22px;
+  border-radius: 18px;
+  border: 1px solid rgba(168, 108, 230, .38);
+  background:
+    radial-gradient(120% 120% at 12% 0%, rgba(168, 108, 230, .18), transparent 58%),
+    linear-gradient(160deg, #161021, #0d0917 70%);
+  box-shadow: 0 26px 70px rgba(0, 0, 0, .65), 0 0 0 1px rgba(255, 255, 255, .03) inset;
+  color: #ece5f7;
+  text-align: center;
+}
+
+.nc-mail-inbox-window {
+  width: min(560px, 100%);
+  max-height: min(78vh, 640px);
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+}
+
+.nc-mail-window.shake {
+  animation: nc-mail-shake .32s ease;
+}
+
+@keyframes nc-mail-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-7px); }
+  60% { transform: translateX(6px); }
+  80% { transform: translateX(-3px); }
+}
+
+.nc-mail-symbol {
+  width: 52px;
+  height: 52px;
+  margin: 0 auto 12px;
+  display: grid;
+  place-items: center;
+  font-size: 24px;
+  border-radius: 50%;
+  border: 1px solid rgba(168, 108, 230, .45);
+  background: radial-gradient(circle at 30% 20%, rgba(168, 108, 230, .32), rgba(20, 12, 34, .9));
+  box-shadow: 0 0 26px rgba(168, 108, 230, .35);
+}
+
+.nc-mail-window h3,
+.nc-mail-inbox-window h3 {
+  margin: 0 0 8px;
+  font-size: 20px;
+  letter-spacing: .4px;
+  color: #fff;
+}
+
+.nc-mail-hint {
+  margin: 0 0 18px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #a596bd;
+}
+
+.nc-mail-x {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #9b8bb5;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  transition: color .18s ease, background .18s ease;
+}
+
+.nc-mail-x:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, .07);
+}
+
+.nc-mail-step {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.nc-mail-step[hidden] {
+  display: none;
+}
+
+.nc-mail-window input {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 11px;
+  border: 1px solid rgba(168, 108, 230, .34);
+  background: rgba(9, 6, 16, .82);
+  color: #f3edff;
+  font-size: 15px;
+  letter-spacing: .5px;
+  text-align: center;
+  outline: none;
+  transition: border-color .18s ease, box-shadow .18s ease;
+}
+
+.nc-mail-window input:focus {
+  border-color: rgba(196, 140, 255, .8);
+  box-shadow: 0 0 0 3px rgba(168, 108, 230, .18);
+}
+
+#nc-mail-address {
+  text-align: center;
+  letter-spacing: .2px;
+}
+
+.nc-mail-primary {
+  padding: 12px 16px;
+  border: 0;
+  border-radius: 11px;
+  background: linear-gradient(120deg, #a86ce6, #7b4bd0 55%, #d47de0);
+  color: #fff;
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: .4px;
+  cursor: pointer;
+  transition: filter .18s ease, transform .18s ease;
+}
+
+.nc-mail-primary:hover:not(:disabled) {
+  filter: brightness(1.12);
+  transform: translateY(-1px);
+}
+
+.nc-mail-primary:disabled {
+  opacity: .55;
+  cursor: default;
+}
+
+.nc-mail-sent {
+  margin: 0 0 4px;
+  font-size: 13px;
+  color: #b6a6cd;
+}
+
+.nc-mail-sent b {
+  color: #fff;
+}
+
+.nc-mail-digits {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin: 6px 0 2px;
+}
+
+.nc-mail-digits input {
+  width: 46px;
+  height: 54px;
+  padding: 0;
+  font-size: 24px;
+  font-weight: 700;
+  text-align: center;
+  caret-color: #d9c2ff;
+}
+
+.nc-mail-timer {
+  min-height: 18px;
+  font-size: 12px;
+  color: #8f7faa;
+  letter-spacing: .3px;
+}
+
+.nc-mail-timer.expired {
+  color: #ef8f9f;
+}
+
+.nc-mail-links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px 14px;
+  margin-top: 4px;
+}
+
+.nc-mail-link {
+  padding: 2px 0;
+  border: 0;
+  background: transparent;
+  color: #b18ee6;
+  font-size: 12px;
+  cursor: pointer;
+  transition: color .18s ease;
+}
+
+.nc-mail-link:hover:not(:disabled) {
+  color: #e0ccff;
+  text-decoration: underline;
+}
+
+.nc-mail-link:disabled {
+  color: #6b5d80;
+  cursor: default;
+}
+
+.nc-mail-error {
+  display: none;
+  margin-top: 12px;
+  padding: 9px 12px;
+  border-radius: 9px;
+  border: 1px solid rgba(239, 105, 125, .4);
+  background: rgba(239, 105, 125, .1);
+  color: #ffb3bf;
+  font-size: 12.5px;
+  line-height: 1.4;
+}
+
+.nc-mail-error.show {
+  display: block;
+}
+
+.nc-mail-inbox-list {
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 6px;
+  padding-right: 4px;
+}
+
+.nc-mail-letter {
+  padding: 13px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(168, 108, 230, .24);
+  background: rgba(12, 8, 21, .75);
+}
+
+.nc-mail-letter.fresh {
+  border-color: rgba(196, 140, 255, .65);
+  box-shadow: 0 0 22px rgba(168, 108, 230, .28);
+}
+
+.nc-mail-letter header {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 13px;
+  color: #ffffff;
+}
+
+.nc-mail-letter header time {
+  color: #8d7aa8;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.nc-mail-letter-to {
+  margin: 4px 0 8px;
+  font-size: 11.5px;
+  color: #8d7aa8;
+}
+
+.nc-mail-letter p {
+  margin: 0 0 8px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: #b9a9d0;
+}
+
+.nc-mail-code {
+  display: inline-block;
+  margin: 2px 0;
+  padding: 2px 10px;
+  border-radius: 7px;
+  background: rgba(168, 108, 230, .18);
+  color: #fff;
+  font-size: 17px;
+  letter-spacing: 4px;
+}
+
+.nc-mail-empty {
+  margin: 10px 0;
+  font-size: 13px;
+  color: #9a8ab4;
+}
+
+/* кнопки в кабинете и ссылка «Забыли пароль?» */
+
+.cabinet-email-btn,
+.nc-forgot {
+  margin-left: 8px;
+  padding: 3px 9px;
+  border-radius: 7px;
+  border: 1px solid rgba(168, 108, 230, .4);
+  background: rgba(168, 108, 230, .12);
+  color: #c9aef0;
+  font-size: 11px;
+  cursor: pointer;
+  transition: background .18s ease, color .18s ease;
+}
+
+.cabinet-email-btn:hover,
+.nc-forgot:hover {
+  background: rgba(168, 108, 230, .26);
+  color: #fff;
+}
+
+.nc-forgot {
+  display: block;
+  margin: 10px auto 0;
+  font-size: 12px;
+}
+
+@media (max-width: 480px) {
+  .nc-mail-window,
+  .nc-mail-inbox-window {
+    padding: 22px 16px 18px;
+  }
+
+  .nc-mail-digits {
+    gap: 5px;
+  }
+
+  .nc-mail-digits input {
+    width: 40px;
+    height: 50px;
+    font-size: 21px;
+  }
+}
