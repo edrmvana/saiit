@@ -1,0 +1,6 @@
+build/
+NocturneLoader.exe
+loader.ini
+server/db.json
+server/private/*
+!server/private/README.txt

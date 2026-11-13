@@ -1,0 +1,405 @@
+#!/usr/bin/env node
+'use strict';
+
+/*
+ * NOCTURNE Licensing Server
+ *
+ * Мини-сервер лицензий для лоадера:
+ *  - проверяет логин/пароль и срок подписки;
+ *  - выдаёт одноразовую ссылку на файл только активным подписчикам;
+ *  - сам файл лежит в private/ и никогда не отдаётся напрямую.
+ *
+ * Без зависимостей: node server.js
+ *
+ * Команды:
+ *   node server.js serve
+ *   node server.js adduser <логин> <пароль> [ГГГГ-ММ-ДД]
+ *   node server.js passwd  <логин> <пароль>
+ *   node server.js extend  <логин> <дней>
+ *   node server.js ban     <логин> [0|1]
+ *   node server.js setbuild <путь к файлу>
+ *   node server.js news    <текст>        (заменить новости одной строкой)
+ *   node server.js addnews <текст>        (добавить строку новостей)
+ */
+
+const http = require('http');
+const fs = require('fs');
+const path = require('path');
+const crypto = require('crypto');
+
+const ROOT = __dirname;
+const DB_PATH = path.join(ROOT, 'db.json');
+const PRIVATE_DIR = path.join(ROOT, 'private');
+const PORT = Number(process.env.PORT || 8090);
+const HOST = process.env.HOST || '0.0.0.0';
+const PUBLIC_URL = String(process.env.PUBLIC_URL || '').replace(/\/+$/, '');
+const SESSION_TTL = 12 * 60 * 60 * 1000; // 12 часов
+const TICKET_TTL = 5 * 60 * 1000;        // 5 минут
+const MAX_BODY = 16 * 1024;
+
+const sessions = new Map(); // token -> { nick, expires }
+const tickets = new Map();  // ticket -> { file, name, expires }
+const attempts = new Map(); // ip -> { count, reset }
+
+function sha256(text) {
+  return crypto.createHash('sha256').update(text, 'utf8').digest('hex');
+}
+
+function randomHex(bytes) {
+  return crypto.randomBytes(bytes).toString('hex');
+}
+
+function hashPassword(password, salt) {
+  return sha256(salt + ':' + password);
+}
+
+function isoDate(date) {
+  return new Date(date).toISOString();
+}
+
+function addDays(days) {
+  const date = new Date();
+  date.setUTCDate(date.getUTCDate() + Number(days));
+  return date.toISOString();
+}
+
+function normalizeDate(value) {
+  if (!value) return addDays(30);
+  const date = new Date(value.length <= 10 ? value + 'T23:59:59.000Z' : value);
+  return isNaN(date.getTime()) ? addDays(30) : date.toISOString();
+}
+
+function defaultDb() {
+  return {
+    version: '1.0.0',
+    online: true,
+    news: [
+      'NOCTURNE: лоадер проверяет подписку автоматически.',
+      'Обновления выходят по мере необходимости — просто запустите лоадер снова.'
+    ],
+    users: [],
+    build: { name: 'cheat.exe', file: '', sha256: '', size: 0, version: '1.0.0' }
+  };
+}
+
+function loadDb() {
+  try {
+    const db = JSON.parse(fs.readFileSync(DB_PATH, 'utf8'));
+    if (!db || !Array.isArray(db.users)) throw new Error('bad db');
+    if (!db.build) db.build = { name: 'cheat.exe', file: '', sha256: '', size: 0, version: '1.0.0' };
+    if (!Array.isArray(db.news)) db.news = [];
+    return db;
+  } catch (error) {
+    const db = defaultDb();
+    const salt = randomHex(16);
+    db.users.push({
+      nick: 'demo',
+      salt,
+      hash: hashPassword('demo', salt),
+      until: addDays(30),
+      banned: false,
+      createdAt: new Date().toISOString()
+    });
+    saveDb(db);
+    console.log('[db] Создана новая база. Тестовый аккаунт: demo / demo (удалите его перед публикацией).');
+    return db;
+  }
+}
+
+function saveDb(db) {
+  fs.writeFileSync(DB_PATH, JSON.stringify(db, null, 2), 'utf8');
+}
+
+// Перечитываем базу на каждом запросе: команды CLI применяются без перезапуска сервера.
+function currentDb(fallback) {
+  try {
+    const data = JSON.parse(fs.readFileSync(DB_PATH, 'utf8'));
+    if (data && Array.isArray(data.users)) {
+      if (!data.build) data.build = { name: 'cheat.exe', file: '', sha256: '', size: 0, version: '1.0.0' };
+      if (!Array.isArray(data.news)) data.news = [];
+      return data;
+    }
+  } catch (error) { /* оставляем последнюю известную базу */ }
+  return fallback;
+}
+
+function findUser(db, nick) {
+  const needle = String(nick || '').toLowerCase();
+  return db.users.find(user => String(user.nick).toLowerCase() === needle);
+}
+
+function safeEqual(a, b) {
+  const left = Buffer.from(String(a));
+  const right = Buffer.from(String(b));
+  if (left.length !== right.length) return false;
+  return crypto.timingSafeEqual(left, right);
+}
+
+/* ------------------------------------------------------------------ CLI */
+
+function cli(args) {
+  const db = loadDb();
+  const command = args[0] || 'serve';
+
+  if (command === 'serve') return serve(db);
+
+  if (command === 'adduser') {
+    const nick = String(args[1] || '').trim();
+    const password = String(args[2] || '');
+    if (!nick || !password) {
+      console.log('Использование: node server.js adduser <логин> <пароль> [ГГГГ-ММ-ДД]');
+      return;
+    }
+    if (findUser(db, nick)) {
+      console.log('Такой пользователь уже есть. Смените пароль командой passwd.');
+      return;
+    }
+    const salt = randomHex(16);
+    db.users.push({
+      nick,
+      salt,
+      hash: hashPassword(password, salt),
+      until: normalizeDate(args[3]),
+      banned: false,
+      createdAt: new Date().toISOString()
+    });
+    saveDb(db);
+    console.log(`Пользователь ${nick} создан. Подписка до ${isoDate(db.users[db.users.length - 1].until)}.`);
+    return;
+  }
+
+  if (command === 'passwd') {
+    const user = findUser(db, args[1]);
+    if (!user) return console.log('Пользователь не найден.');
+    user.salt = randomHex(16);
+    user.hash = hashPassword(String(args[2] || ''), user.salt);
+    saveDb(db);
+    console.log('Пароль обновлён.');
+    return;
+  }
+
+  if (command === 'extend') {
+    const user = findUser(db, args[1]);
+    if (!user) return console.log('Пользователь не найден.');
+    const days = Number(args[2] || 30);
+    const base = new Date(user.until).getTime();
+    const from = Math.max(Date.now(), isNaN(base) ? 0 : base);
+    user.until = new Date(from + days * 24 * 60 * 60 * 1000).toISOString();
+    saveDb(db);
+    console.log(`Подписка ${user.nick} продлена до ${user.until}.`);
+    return;
+  }
+
+  if (command === 'ban') {
+    const user = findUser(db, args[1]);
+    if (!user) return console.log('Пользователь не найден.');
+    user.banned = String(args[2] || '1') !== '0';
+    saveDb(db);
+    console.log(`Пользователь ${user.nick}: ${user.banned ? 'заблокирован' : 'разблокирован'}.`);
+    return;
+  }
+
+  if (command === 'setbuild') {
+    const source = args[1];
+    if (!source || !fs.existsSync(source)) {
+      console.log('Файл не найден. Использование: node server.js setbuild <путь к файлу>');
+      return;
+    }
+    fs.mkdirSync(PRIVATE_DIR, { recursive: true });
+    const name = path.basename(source);
+    const destination = path.join(PRIVATE_DIR, name);
+    if (path.resolve(source) !== path.resolve(destination)) fs.copyFileSync(source, destination);
+    const data = fs.readFileSync(destination);
+    db.build = {
+      name,
+      file: path.relative(ROOT, destination).replace(/\\/g, '/'),
+      sha256: crypto.createHash('sha256').update(data).digest('hex'),
+      size: data.length,
+      version: args[2] || db.version || '1.0.0'
+    };
+    saveDb(db);
+    console.log(`Сборка обновлена: ${name}, ${data.length} байт, sha256 ${db.build.sha256}.`);
+    return;
+  }
+
+  if (command === 'news' || command === 'addnews') {
+    const text = args.slice(1).join(' ').trim();
+    if (!text) return console.log('Введите текст новости.');
+    if (command === 'news') db.news = [text];
+    else db.news.push(text);
+    saveDb(db);
+    console.log('Новости обновлены.');
+    return;
+  }
+
+  console.log('Неизвестная команда. Доступно: serve, adduser, passwd, extend, ban, setbuild, news, addnews.');
+}
+
+/* --------------------------------------------------------------- HTTP */
+
+function sendText(res, status, text) {
+  res.writeHead(status, {
+    'Content-Type': 'text/plain; charset=utf-8',
+    'Cache-Control': 'no-store',
+    'X-Content-Type-Options': 'nosniff'
+  });
+  res.end(text);
+}
+
+function parseBody(req) {
+  return new Promise((resolve, reject) => {
+    let body = '';
+    req.on('data', chunk => {
+      body += chunk;
+      if (body.length > MAX_BODY) {
+        reject(new Error('too large'));
+        req.destroy();
+      }
+    });
+    req.on('end', () => {
+      const params = new URLSearchParams(body);
+      resolve({ login: params.get('login') || '', password: params.get('password') || '' });
+    });
+    req.on('error', reject);
+  });
+}
+
+function rateLimited(ip) {
+  const now = Date.now();
+  const state = attempts.get(ip);
+  if (!state || now > state.reset) {
+    attempts.set(ip, { count: 1, reset: now + 60 * 1000 });
+    return false;
+  }
+  state.count++;
+  return state.count > 8;
+}
+
+function bearerToken(req) {
+  const header = String(req.headers.authorization || '');
+  const match = /^Bearer\s+([a-f0-9]{32,128})$/i.exec(header);
+  return match ? match[1] : '';
+}
+
+function sessionFor(req) {
+  const token = bearerToken(req);
+  if (!token) return null;
+  const session = sessions.get(token);
+  if (!session) return null;
+  if (session.expires < Date.now()) {
+    sessions.delete(token);
+    return null;
+  }
+  return session;
+}
+
+function servesStatic() {
+  return false;
+}
+
+function serve(initialDb) {
+  fs.mkdirSync(PRIVATE_DIR, { recursive: true });
+
+  const server = http.createServer((req, res) => {
+    const db = currentDb(initialDb);
+    const url = new URL(req.url, 'http://localhost');
+    const ip = req.socket.remoteAddress || 'unknown';
+
+    if (req.method === 'GET' && url.pathname === '/api/status') {
+      const lines = ['OK', 'version=' + db.version, 'online=' + (db.online ? 'true' : 'false')];
+      for (const item of db.news.slice(0, 6)) lines.push('news=' + String(item).replace(/[\r\n]+/g, ' '));
+      return sendText(res, 200, lines.join('\n'));
+    }
+
+    if (req.method === 'POST' && url.pathname === '/api/login') {
+      if (rateLimited(ip)) return sendText(res, 429, 'ERR\nmessage=Слишком много попыток. Подождите минуту.');
+      parseBody(req).then(({ login, password }) => {
+        const user = findUser(db, login);
+        const expected = user ? hashPassword(password, user.salt) : sha256('invalid:' + randomHex(8));
+        const valid = user && safeEqual(expected, user.hash);
+        if (!valid) return sendText(res, 200, 'ERR\nmessage=Неверный логин или пароль.');
+        if (user.banned) return sendText(res, 200, 'ERR\nmessage=Аккаунт заблокирован.');
+        if (!db.online) return sendText(res, 200, 'ERR\nmessage=Сервер временно отключён на техработы.');
+
+        const token = randomHex(32);
+        sessions.set(token, { nick: user.nick, expires: Date.now() + SESSION_TTL });
+        return sendText(res, 200, [
+          'OK',
+          'token=' + token,
+          'nick=' + user.nick,
+          'until=' + isoDate(user.until)
+        ].join('\n'));
+      }).catch(() => sendText(res, 400, 'ERR\nmessage=Некорректный запрос.'));
+      return;
+    }
+
+    if (req.method === 'POST' && url.pathname === '/api/ticket') {
+      const session = sessionFor(req);
+      if (!session) return sendText(res, 200, 'ERR\nmessage=Сессия истекла. Войдите заново.');
+      const user = findUser(db, session.nick);
+      if (!user) return sendText(res, 200, 'ERR\nmessage=Аккаунт не найден.');
+      if (user.banned) return sendText(res, 200, 'ERR\nmessage=Аккаунт заблокирован.');
+      if (!db.online) return sendText(res, 200, 'ERR\nmessage=Сервер временно отключён на техработы.');
+      if (!(new Date(user.until).getTime() > Date.now())) {
+        return sendText(res, 200, 'ERR\nmessage=Подписка истекла. Продлите её на сайте.');
+      }
+      if (!db.build || !db.build.file) return sendText(res, 200, 'ERR\nmessage=Сборка ещё не загружена на сервер.');
+      const buildPath = path.join(ROOT, db.build.file);
+      if (!fs.existsSync(buildPath)) return sendText(res, 200, 'ERR\nmessage=Файл сборки не найден на сервере.');
+      if (!db.build.sha256) return sendText(res, 200, 'ERR\nmessage=У сборки нет контрольной суммы. Запустите setbuild.');
+
+      const ticket = randomHex(24);
+      tickets.set(ticket, { file: buildPath, name: db.build.name, expires: Date.now() + TICKET_TTL });
+      const base = PUBLIC_URL || ('http://' + (req.headers.host || '127.0.0.1:' + PORT));
+      return sendText(res, 200, [
+        'OK',
+        'url=' + base + '/download/' + ticket,
+        'sha256=' + db.build.sha256,
+        'name=' + db.build.name,
+        'version=' + (db.build.version || db.version)
+      ].join('\n'));
+    }
+
+    if (req.method === 'GET' && url.pathname.startsWith('/download/')) {
+      const ticket = url.pathname.slice('/download/'.length);
+      const entry = tickets.get(ticket);
+      if (!entry) return sendText(res, 404, 'Ссылка недействительна или уже использована.');
+      tickets.delete(ticket);
+      if (entry.expires < Date.now()) return sendText(res, 404, 'Ссылка истекла.');
+      if (!fs.existsSync(entry.file)) return sendText(res, 404, 'Файл не найден.');
+
+      const stat = fs.statSync(entry.file);
+      res.writeHead(200, {
+        'Content-Type': 'application/octet-stream',
+        'Content-Length': stat.size,
+        'Content-Disposition': 'attachment; filename="' + String(entry.name).replace(/["\r\n]/g, '') + '"',
+        'Cache-Control': 'no-store'
+      });
+      const stream = fs.createReadStream(entry.file);
+      stream.on('error', () => res.destroy());
+      stream.pipe(res);
+      return;
+    }
+
+    if (servesStatic()) return;
+    sendText(res, 404, 'Not found');
+  });
+
+  setInterval(() => {
+    const now = Date.now();
+    for (const [token, session] of sessions) if (session.expires < now) sessions.delete(token);
+    for (const [ticket, entry] of tickets) if (entry.expires < now) tickets.delete(ticket);
+    for (const [ip, state] of attempts) if (state.reset < now) attempts.delete(ip);
+  }, 60 * 1000).unref();
+
+  server.listen(PORT, HOST, () => {
+    console.log('NOCTURNE licensing server');
+    console.log('  API:     http://' + (HOST === '0.0.0.0' ? '127.0.0.1' : HOST) + ':' + PORT);
+    console.log('  Сборка:  ' + (initialDb.build && initialDb.build.file ? initialDb.build.file + ' (' + initialDb.build.size + ' байт)' : 'не загружена'));
+    console.log('  Аккаунты: ' + initialDb.users.length);
+    console.log('  Публичный адрес: ' + (PUBLIC_URL || 'определяется по Host запроса'));
+    console.log('\nОстановить: Ctrl+C');
+  });
+}
+
+cli(process.argv.slice(2));

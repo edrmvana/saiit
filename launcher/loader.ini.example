@@ -1,0 +1,20 @@
+; NOCTURNE Loader settings
+;
+; mode=local  - check login/password from [demo] and launch cheat_path (no server)
+; mode=server - check account and subscription on the licensing server,
+;               download the build via one-time link and verify SHA-256
+;
+; If your paths contain non-ASCII characters, save this file as UTF-16 LE with BOM.
+
+[app]
+mode=local
+api_url=http://127.0.0.1:8090
+cheat_path=C:\NOCTURNE\cheat.exe
+cheat_args=
+save_dir=%LOCALAPPDATA%\NOCTURNE\build
+close_after_launch=0
+
+[demo]
+login=demo
+password=demo
+until=2026-12-31

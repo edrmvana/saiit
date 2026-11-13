@@ -1,0 +1,14 @@
+{
+  "name": "nocturne-licensing-server",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Мини-сервер лицензий NOCTURNE для лоадера: аккаунты, подписки, одноразовые ссылки на файл.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js serve",
+    "adduser": "node server.js adduser"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
