@@ -23,11 +23,11 @@ NOCTURNE — статический веб-проект на HTML, CSS и JavaSc
 | `launcher/` | Отдельный Windows-лоадер и мини-сервер лицензий |
 | `auth-transition.js` | Переходы авторизации |
 | `scroll-reveal.js`, `scroll-reveal.css` | Появление элементов при прокрутке |
-| `assets/` | Изображения: фон героя TON 618 (`ton618-hero.webp`, мобильный — `ton618-hero-mobile.webp`), логотипы |
+| `assets/` | Изображения, логотип `nc_logo.webp`, иконка `blackhole.webp`, фон `space-bg.webp`, лоадер `NocturneLoader.exe` |
 | `admin-desktop-tool/` | Отдельное настольное приложение администратора |
 
 ## Что важно знать перед публикацией
-**Про изображения.** Фон главной страницы и экрана входа в админ-панель использует `assets/ton618-hero.webp`. Файлы `assets/nc_logo.webp` (логотип в шапке и favicon) и `assets/blackhole.webp` (иконка софта в карточке товара) в репозитории отсутствуют — без них на сайте будут пустые места вместо картинок. Добавьте их в `assets/`.
+**Про изображения.** Фон главной страницы — `assets/space-bg.webp`, на телефоне — `assets/ton618-hero-mobile.webp`, экран входа в админ-панель — `assets/ton618-hero.webp`. Логотип — `assets/nc_logo.webp`, иконка косметики — `assets/blackhole.webp`.
 
 
 **Текущая версия — локальный демонстрационный прототип, а не готовая серверная система.** Аккаунты, ключи, промокоды, сообщения и переключатель сервера хранятся в `localStorage` браузера. Они не синхронизируются между устройствами, браузерами или разными адресами сайта.
@@ -77,7 +77,7 @@ node server\server.js setbuild C:\builds\cheat.exe
 node server\server.js serve
 ```
 
-Кнопка «Скачать лоадер» в кабинете пока ведёт на `loader.txt`. После сборки положите `NocturneLoader.exe` на хостинг и замените ссылку `#loader-download` в `index.html`.
+Кнопка «Скачать лоадер» в кабинете ведёт на `assets/NocturneLoader.exe` (демо-сборка без подписи, Windows может показать предупреждение SmartScreen). После пересборки замените файл. Вход в панель по ключам — ссылка «Панель управления» в боковом меню сайта (`admin.html`).
 
 Подробности и ограничения — в `launcher/README.md` и `launcher/server/README.md`.
 
