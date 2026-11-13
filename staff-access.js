@@ -314,7 +314,9 @@
       lockEl = buildLock();
       document.body.appendChild(lockEl);
       var keyInput = lockEl.querySelector('#staff-key');
-      if (keyInput) setTimeout(function () { keyInput.focus(); }, 60);
+      // На телефонах не открываем клавиатуру автоматически: экран входа «уезжает» вверх.
+      var wideScreen = window.matchMedia ? window.matchMedia('(min-width: 761px)').matches : true;
+      if (keyInput && wideScreen) setTimeout(function () { keyInput.focus(); }, 60);
     }
     document.body.classList.add('staff-locked');
     if (message) setLockMessage(message);
