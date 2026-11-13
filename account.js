@@ -30,6 +30,15 @@ function finishPurchase(name,days,price,btn,promoCode){
  const accounts=getAccounts(),a=accounts.find(x=>x.nick===ncStorage.getItem('nc_session'));
  if(!a)return showNC('Сначала войдите в аккаунт','error');
  if(a.blocked)return showNC('Аккаунт заблокирован','error');
+ if(promoCode){
+   try {
+     const pList = JSON.parse(ncStorage.getItem('nc_promos') || '[]');
+     const pr = pList.find(x => String(x.code).toUpperCase() === String(promoCode).toUpperCase());
+     if(pr && pr.firstOnly && window.NCStore && !NCStore.promo.isFirstPurchase(a.nick)){
+       return showNC('Промокод '+pr.code+' действует только на первую покупку','error');
+     }
+   } catch(e){}
+ }
  if(Number(a.balance||0)<Number(price))return showNC('Недостаточно средств на балансе сайта','error');
  a.balance=Number(a.balance||0)-Number(price);
  if(promoCode){
@@ -78,8 +87,9 @@ function renderChat(){
   return `<div class="chat-msg"><div class="chat-msg-header"><b>${escapeHTML(m.nick)}</b>${roleBadgeHTML(role)}<time>${escapeHTML(time)}</time></div><span class="chat-message-text">${escapeHTML(m.text)}</span></div>`;
  }).join('')||'<p class="chat-empty">Сообщений пока нет. Это локальный демо-чат.</p>';
 }
-function sendSupport(){const a=currentAccount(),i=document.getElementById('support-input');if(!a||!i||!i.value.trim())return;const c=JSON.parse(ncStorage.getItem('nc_support')||'[]');c.push({nick:a.nick,text:i.value.trim().slice(0,1000),reply:'',time:Date.now()});ncStorage.setItem('nc_support',JSON.stringify(c));i.value='';renderSupport();showNC('Сообщение отправлено в поддержку');}
-function renderSupport(){const e=document.getElementById('support-messages');if(!e)return;const c=JSON.parse(ncStorage.getItem('nc_support')||'[]');e.innerHTML=c.filter(m=>m.nick===ncStorage.getItem('nc_session')).slice(-20).map(m=>`<div class="chat-msg"><b>Вы:</b> ${escapeHTML(m.text)}${m.reply?`<br><small>Администратор: ${escapeHTML(m.reply)}</small>`:''}</div>`).join('')||'<span class="muted">Обращений нет</span>';}
+function sendSupport(){renderSupport();}
+function renderSupport(){renderTickets();}
+function renderTickets(){const e=document.getElementById('cabinet-tickets-list');if(e&&window.NCTickets)window.NCTickets.renderPlayer(e);}
 function setNCMode(mode){
  ncMode=mode;
  const title=document.getElementById('nc-title');
@@ -157,6 +167,7 @@ function updateProfile(){
  renderUserPurchases();
  if(typeof refreshDashboard==='function')refreshDashboard();
 }
+window.addEventListener('storage',e=>{if(e.key==='nc_tickets')renderTickets();});
 
 function renderUserPurchases(){
   const session = ncStorage.getItem('nc_session');

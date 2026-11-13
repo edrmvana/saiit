@@ -377,3 +377,7 @@
   .np-pay-list,.np-pay-option{animation:none!important;transition:none!important;}
   .np-pay.open .np-pay-option{opacity:1;transform:none;}
 }
+
+/* Подсказка про промокод на первую покупку */
+.np-promo-hint{margin-top:6px;font-size:10px;line-height:1.65;color:#8f7ba1}
+.np-promo-hint b{color:#d8bcf5;font-weight:600}

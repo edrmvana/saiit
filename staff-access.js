@@ -31,8 +31,8 @@
   var ROLE_ORDER = ['junior_moderator', 'moderator', 'admin', 'senior_admin', 'owner'];
 
   var PERMISSIONS = [
-    { id: 'support.view', label: 'Видеть тикеты поддержки' },
-    { id: 'support.reply', label: 'Отвечать на тикеты' },
+    { id: 'support.view', label: 'Видеть тикеты игроков' },
+    { id: 'support.reply', label: 'Отвечать на тикеты и закрывать их' },
     { id: 'chat.view', label: 'Видеть чат' },
     { id: 'chat.delete', label: 'Удалять сообщения в чате' },
     { id: 'players.view', label: 'Смотреть список игроков' },

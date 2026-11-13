@@ -175,6 +175,7 @@
                 '<button type="button" id="np-promo-btn" class="np-promo-apply-btn">Применить</button>'+
               '</div>'+
               '<div id="np-promo-feedback" class="np-promo-feedback"></div>'+
+              '<div class="np-promo-hint">Первый заказ? Промокод <b>1FIRST</b> даёт −20% на первую покупку.</div>' +
             '</label>'+
           '</div>'+
           '<div class="np-user-balance" id="np-user-balance"></div>'+
@@ -278,6 +279,19 @@
         }
         paint();
         return;
+      }
+
+      if (found.firstOnly) {
+        var buyer = (typeof currentAccount === 'function') ? currentAccount() : null;
+        if (buyer && window.NCStore && !window.NCStore.promo.isFirstPurchase(buyer.nick)) {
+          state.discount = 0;
+          state.promoCode = '';
+          if (feedback) {
+            feedback.innerHTML = '<span class="np-promo-msg error">✕ Промокод «' + found.code + '» действует только на первую покупку</span>';
+          }
+          paint();
+          return;
+        }
       }
 
       state.discount = Number(found.discount) || 0;
@@ -429,6 +443,7 @@
             '<button type="button" id="np-promo-btn" class="np-promo-apply-btn">Применить</button>' +
           '</div>' +
           '<div id="np-promo-feedback" class="np-promo-feedback"></div>' +
+              '<div class="np-promo-hint">Первый заказ? Промокод <b>1FIRST</b> даёт −20% на первую покупку.</div>' +
         '</label>' +
       '</div>' +
       '<div class="np-user-balance" id="np-user-balance"></div>' +
@@ -537,6 +552,19 @@
         if (feedback) feedback.innerHTML = '<span class="np-promo-msg error">✕ Лимит активаций промокода исчерпан</span>';
         paint();
         return;
+      }
+
+      if (found.firstOnly) {
+        var buyer = (typeof currentAccount === 'function') ? currentAccount() : null;
+        if (buyer && window.NCStore && !window.NCStore.promo.isFirstPurchase(buyer.nick)) {
+          state.discount = 0;
+          state.promoCode = '';
+          if (feedback) {
+            feedback.innerHTML = '<span class="np-promo-msg error">✕ Промокод «' + found.code + '» действует только на первую покупку</span>';
+          }
+          paint();
+          return;
+        }
       }
 
       state.discount = Number(found.discount) || 0;
