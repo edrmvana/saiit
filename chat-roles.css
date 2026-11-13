@@ -6,20 +6,34 @@
   gap: 4px;
   flex-shrink: 0;
   padding: 3px 8px;
-  border: 1px solid var(--cr2, #8d5bd0);
+  border: 1px solid color-mix(in srgb, var(--cr2, #8d5bd0) 70%, #140a1f);
   border-radius: 6px;
   background: linear-gradient(100deg, var(--cr1, #d3b0ff), var(--cr2, #8d5bd0), var(--cr1, #d3b0ff));
   background-size: 220% 100%;
-  color: #150b20;
-  font-size: 9.5px;
+  color: #140a1f;
+  font-size: 10px;
   font-weight: 800;
-  line-height: 1.4;
-  letter-spacing: .015em;
+  line-height: 1.35;
+  letter-spacing: .01em;
   white-space: nowrap;
   vertical-align: middle;
-  text-shadow: 0 1px 0 #ffffff4d;
-  box-shadow: 0 0 10px color-mix(in srgb, var(--cr2, #8d5bd0) 32%, transparent);
+  box-shadow: 0 0 0 1px #0b0512a6, 0 2px 8px #0b051266;
   animation: chat-role-shimmer 4.2s ease-in-out infinite;
+}
+
+/* В кабинете и в админ-чате у сообщений есть правило `.chat-msg span`
+   (display:block; color:#c1b1cf), которое перебивало бейдж и делало текст
+   бледным. Здесь специфичность выше, поэтому бейджи читаются. */
+.chat-msg .chat-role-badge,
+.admin-chat-message .chat-role-badge {
+  display: inline-flex;
+  color: #140a1f;
+}
+
+.chat-msg .chat-role-badge .chat-role-symbol,
+.admin-chat-message .chat-role-badge .chat-role-symbol {
+  display: inline;
+  color: inherit;
 }
 
 .chat-role-symbol {
@@ -63,17 +77,3 @@
   white-space: nowrap;
 }
 
-/* Легенда ролей в чате — видна игрокам */
-.chat-roles-legend {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
-  margin: 0 0 12px;
-}
-
-.chat-roles-label {
-  font-size: 10px;
-  color: #8d7a9d;
-  margin-right: 2px;
-}

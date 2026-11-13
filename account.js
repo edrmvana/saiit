@@ -79,13 +79,6 @@ function saveAvatarFile(){const input=document.getElementById('avatar-file'),fil
 function sendChat(){const a=currentAccount(),i=document.getElementById('chat-input');if(!a||!i||!i.value.trim())return;if(a.blocked)return showNC('Аккаунт заблокирован','error');const c=JSON.parse(ncStorage.getItem('nc_chat')||'[]');c.push({nick:a.nick,text:i.value.trim().slice(0,1000),time:Date.now()});ncStorage.setItem('nc_chat',JSON.stringify(c));i.value='';renderChat();}
 function renderChat(){
  const el=document.getElementById('chat-messages');if(!el)return;
- const legend=document.getElementById('chat-roles-legend');
- if(legend&&!legend.dataset.built&&window.staffChatBadge&&window.mediaChatBadge){
-   legend.innerHTML='<span class="chat-roles-label">Роли в чате:</span>'+
-     ['junior_moderator','moderator','admin','senior_admin','owner'].map(staffChatBadge).join('')+
-     ['youtube','tiktok'].map(mediaChatBadge).join('');
-   legend.dataset.built='1';
- }
  const messages=JSON.parse(ncStorage.getItem('nc_chat')||'[]');
  const members=new Map(getAccounts().map(a=>[a.nick,a]));
  el.innerHTML=messages.slice(-50).map(m=>{
