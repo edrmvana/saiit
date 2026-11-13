@@ -44,6 +44,56 @@
   function roleLabel(role) { return ROLE_LABELS[role] || role || ''; }
   function statusLabel(status) { return STATUS_LABELS[status] || 'Открыт'; }
 
+  /* -------------------------------------------------------------- подписка */
+
+  function parseSubscription(raw, now) {
+    if (!raw) return null;
+    if (typeof raw === 'string') {
+      var match = raw.match(/(\d+)\s*дн/i);
+      return { name: raw, days: match ? Number(match[1]) : 0, until: 0 };
+    }
+    if (typeof raw !== 'object') return null;
+    var untilRaw = raw.until != null ? raw.until : raw.to;
+    var until = Number(untilRaw);
+    if (!isFinite(until) || until <= 0) {
+      var parsed = Date.parse(untilRaw);
+      until = isFinite(parsed) ? parsed : 0;
+    }
+    if (until > 0 && until < 1e12) until *= 1000; // секунды → миллисекунды
+    var days = Number(raw.days || raw.tariffDays || 0);
+    if (!days && raw.name) {
+      var dayMatch = String(raw.name).match(/(\d+)\s*дн/i);
+      if (dayMatch) days = Number(dayMatch[1]);
+    }
+    if (!until && !days && !raw.name) return null;
+    return { name: String(raw.name || ''), days: days || 0, until: until || 0 };
+  }
+
+  function subscriptionInfo(account) {
+    if (!account) return null;
+    var candidates = [account.subscription, account.lastSubscription, account.sub];
+    for (var i = 0; i < candidates.length; i++) {
+      var info = parseSubscription(candidates[i]);
+      if (info) return info;
+    }
+    return null;
+  }
+
+  function isSubActive(account) {
+    var info = subscriptionInfo(account);
+    return !!(info && info.until > Date.now());
+  }
+
+  function hasSubHistory(account, keysList) {
+    if (!account) return false;
+    var info = subscriptionInfo(account);
+    if (info && (info.until > Date.now() || info.days > 0 || info.name)) return true;
+    var keys = Array.isArray(keysList) ? keysList : readJSON('nc_keys', []);
+    return Array.isArray(keys) && keys.some(function (key) {
+      return key && key.usedBy === account.nick && Number(key.days) > 0;
+    });
+  }
+
   /* ------------------------------------------------------------------ тикеты */
 
   function ticketList() {
@@ -290,6 +340,9 @@
     statusLabel: statusLabel,
     currentNick: currentNick,
     currentStaff: currentStaff,
+    subscription: subscriptionInfo,
+    isSubActive: isSubActive,
+    hasSubHistory: hasSubHistory,
     tickets: {
       all: ticketList,
       save: saveTickets,

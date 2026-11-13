@@ -1,0 +1,64 @@
+/* NOCTURNE — двухцветные «переливающиеся» роли в чате */
+
+.chat-role-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  padding: 3px 8px;
+  border: 1px solid var(--cr2, #8d5bd0);
+  border-radius: 6px;
+  background: linear-gradient(100deg, var(--cr1, #d3b0ff), var(--cr2, #8d5bd0), var(--cr1, #d3b0ff));
+  background-size: 220% 100%;
+  color: #150b20;
+  font-size: 9.5px;
+  font-weight: 800;
+  line-height: 1.4;
+  letter-spacing: .015em;
+  white-space: nowrap;
+  vertical-align: middle;
+  text-shadow: 0 1px 0 #ffffff4d;
+  box-shadow: 0 0 10px color-mix(in srgb, var(--cr2, #8d5bd0) 32%, transparent);
+  animation: chat-role-shimmer 4.2s ease-in-out infinite;
+}
+
+.chat-role-symbol {
+  font-size: 11px;
+  line-height: 1;
+}
+
+.chat-role-media {
+  animation-duration: 3.4s;
+}
+
+@keyframes chat-role-shimmer {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chat-role-badge {
+    animation: none;
+  }
+}
+
+/* composer персонала в админ-чате */
+.admin-chat-send {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.admin-chat-send input {
+  flex: 1;
+  min-width: 0;
+}
+
+.admin-chat-send button {
+  flex-shrink: 0;
+  padding: 9px 15px;
+  font-size: 11px;
+  white-space: nowrap;
+}

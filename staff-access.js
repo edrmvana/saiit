@@ -33,7 +33,7 @@
   var PERMISSIONS = [
     { id: 'support.view', label: 'Видеть тикеты игроков' },
     { id: 'support.reply', label: 'Отвечать на тикеты и закрывать их' },
-    { id: 'chat.view', label: 'Видеть чат' },
+    { id: 'chat.view', label: 'Чат: читать и писать' },
     { id: 'chat.delete', label: 'Удалять сообщения в чате' },
     { id: 'players.view', label: 'Смотреть список игроков' },
     { id: 'players.edit', label: 'Менять игроков: баланс, пароль, блокировка, подписка' },
@@ -55,7 +55,7 @@
   PERMISSIONS.forEach(function (p) { PERMISSION_LABELS[p.id] = p.label; });
 
   var ROLE_PERMISSIONS = {
-    junior_moderator: ['support.view', 'support.reply'],
+    junior_moderator: ['support.view', 'support.reply', 'chat.view'],
     moderator: ['support.view', 'support.reply', 'chat.view', 'chat.delete', 'players.view'],
     admin: [
       'support.view', 'support.reply', 'chat.view', 'chat.delete', 'players.view', 'players.edit',

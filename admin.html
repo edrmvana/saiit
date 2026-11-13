@@ -138,7 +138,7 @@ button:active{transform:translateY(1px)}
 .admin-notice{line-height:1.75}
 @media(max-width:600px){main{padding:18px 12px}main>h1{font-size:25px}.panel{border-radius:12px}.players-heading{align-items:flex-start}}
 @media(prefers-reduced-motion:reduce){.panel,tbody tr,button{transition:none!important}.panel:hover,button:active{transform:none}}
-</style><link rel="stylesheet" href="staff-access.css"><link rel="stylesheet" href="tickets.css"><script src="site-store.js"></script><script src="tickets.js"></script></head><body><main><div class="admin-notice"><strong>NOCTURNE · локальная демо-панель</strong><br>Данные и ключи сотрудников доступны только в этом браузере. Пароль владельца находится в коде, права проверяются в браузере — это демо, а не настоящая защита. Не размещайте панель в открытом доступе и не используйте для реальных платежей. <a href="index.html">Вернуться на сайт →</a></div><h1>NOCTURNE · Админ-панель</h1><div id="server-panel" class="panel server-panel" data-staff-perm="server.manage"><div class="server-state"><span class="dot"></span><div><h2 id="server-title" style="margin:0">Сервер включён</h2><p id="server-hint" class="server-hint">Покупки и скачивание лаунчера доступны</p></div></div><button id="server-toggle" onclick="toggleServer()">Отключить сервер</button></div><div class="panel" data-staff-perm="players.view">
+</style><link rel="stylesheet" href="staff-access.css"><link rel="stylesheet" href="tickets.css"><link rel="stylesheet" href="chat-roles.css"><script src="chat-roles.js"></script><script src="site-store.js"></script><script src="tickets.js"></script></head><body><main><div class="admin-notice"><strong>NOCTURNE · локальная демо-панель</strong><br>Данные и ключи сотрудников доступны только в этом браузере. Пароль владельца находится в коде, права проверяются в браузере — это демо, а не настоящая защита. Не размещайте панель в открытом доступе и не используйте для реальных платежей. <a href="index.html">Вернуться на сайт →</a></div><h1>NOCTURNE · Админ-панель</h1><div id="server-panel" class="panel server-panel" data-staff-perm="server.manage"><div class="server-state"><span class="dot"></span><div><h2 id="server-title" style="margin:0">Сервер включён</h2><p id="server-hint" class="server-hint">Покупки и скачивание лаунчера доступны</p></div></div><button id="server-toggle" onclick="toggleServer()">Отключить сервер</button></div><div class="panel" data-staff-perm="players.view">
   <div class="players-heading">
     <h2>Игроки <span id="players-total">…</span></h2>
     <div style="display:flex;gap:8px">
@@ -435,6 +435,8 @@ const adminStorage=(()=>{try{const storage=window.localStorage;storage.getItem('
 const prices={7:59,14:100,30:200,90:500,180:800,0:99};
 const noMotion=()=>typeof Element.prototype.animate!=='function'||(typeof matchMedia==='function'&&matchMedia('(prefers-reduced-motion: reduce)').matches);
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const ncSub=a=>(window.NCStore&&NCStore.subscription)?NCStore.subscription(a):(a&&a.subscription||null);
+const ncSubActive=a=>(window.NCStore&&NCStore.isSubActive)?NCStore.isSubActive(a):!!(a&&a.subscription&&Number(a.subscription.until)>Date.now());
 const rubles=value=>new Intl.NumberFormat('ru-RU',{style:'currency',currency:'RUB',maximumFractionDigits:2}).format(Number(value)||0);
 function readList(key){try{const a=JSON.parse(adminStorage.getItem(key)||'[]');return Array.isArray(a)?a:[];}catch{return[];}}
 let accountReadState={source:'none',error:'',skipped:0,count:0};
@@ -457,7 +459,8 @@ function save(a){
  accounts();if(accountReadState.error)throw new Error(accountReadState.error);
  adminStorage.setItem('nc_accounts',JSON.stringify(a));render();adminExtras();
 }
-function safeMemberBadge(a){try{return roleBadgeHTML(equippedRoleOf(a));}catch{return '';}}
+function safeMemberBadge(a){try{const media=window.chatMediaRole?chatMediaRole(a):'';if(media&&window.mediaChatBadge)return mediaChatBadge(media);return roleBadgeHTML(equippedRoleOf(a));}catch{return '';}}
+function chatBadgeFor(m,members){if(m.staff&&window.staffChatBadge)return staffChatBadge(m.role);return safeMemberBadge(members.get(m.nick));}
 function showAccountReadStatus(){
  const state=accountReadState,count=document.getElementById('players-total'),status=document.getElementById('accounts-status'),details=document.getElementById('storage-diagnostics');
  if(count)count.textContent=String(state.count);
@@ -554,6 +557,7 @@ function setPlayerFilter(filter, btn) {
 
 function getHistoricalSubDays(account, keysList) {
   const now = Date.now();
+  if (window.NCStore) { const normalized = NCStore.subscription(account); if (normalized && normalized.days > 0) return normalized.days; }
   // 1. Из lastSubscription (сохранен при покупке или прошлой выдаче)
   if (account.lastSubscription) {
     if (Number(account.lastSubscription.days) > 0) return Number(account.lastSubscription.days);
@@ -581,13 +585,11 @@ function getHistoricalSubDays(account, keysList) {
 }
 
 function hasSubscriptionHistory(account, keysList) {
+  if (window.NCStore && NCStore.hasSubHistory) return NCStore.hasSubHistory(account, keysList);
   const now = Date.now();
-  if (account.subscription && (Number(account.subscription.until) > now || Number(account.subscription.days) > 0 || account.subscription.name)) {
-    return true;
-  }
-  if (account.lastSubscription && (Number(account.lastSubscription.days) > 0 || account.lastSubscription.name)) {
-    return true;
-  }
+  const sub = account && account.subscription;
+  if (sub && (Number(sub.until) > now || Number(sub.days) > 0 || sub.name)) return true;
+  if (account && account.lastSubscription && (Number(account.lastSubscription.days) > 0 || account.lastSubscription.name)) return true;
   const keys = keysList || readList('nc_keys');
   return keys.some(k => k.usedBy === account.nick && Number(k.days) > 0);
 }
@@ -603,9 +605,10 @@ function exportPlayersCSV() {
   const headers = ['Логин', 'Баланс (руб)', 'Статус подписки', 'Дней осталось', 'Действует до', 'HWID', 'Блокировка', 'Была подписка'];
   
   const rows = list.map(a => {
-    const hasSub = a.subscription && Number(a.subscription.until) > now;
-    const daysLeft = hasSub ? Math.ceil((Number(a.subscription.until) - now) / 86400000) : 0;
-    const untilDate = hasSub ? new Date(Number(a.subscription.until)).toLocaleDateString('ru-RU') : '';
+    const hasSub = ncSubActive(a);
+    const subInfo = ncSub(a) || {};
+    const daysLeft = hasSub ? Math.ceil((Number(subInfo.until) - now) / 86400000) : 0;
+    const untilDate = hasSub ? new Date(Number(subInfo.until)).toLocaleDateString('ru-RU') : '';
     const hadPast = hasSubscriptionHistory(a, keys);
     
     return [
@@ -664,7 +667,7 @@ function render() {
 
   // Подсчёт статистики для вкладок и дашборда
   const cntAll = members.length;
-  const cntSub = members.filter(a => a.subscription && Number(a.subscription.until) > now).length;
+  const cntSub = members.filter(ncSubActive).length;
   const cntHadSub = members.filter(a => hasSubscriptionHistory(a, keys)).length;
   const cntNoSub = members.filter(a => !hasSubscriptionHistory(a, keys)).length;
   const cntBlock = members.filter(a => a.blocked).length;
@@ -700,7 +703,7 @@ function render() {
   // Фильтрация
   let filtered = members.slice();
   if (currentPlayerFilter === 'has_sub') {
-    filtered = filtered.filter(a => a.subscription && Number(a.subscription.until) > now);
+    filtered = filtered.filter(ncSubActive);
   } else if (currentPlayerFilter === 'had_sub') {
     filtered = filtered.filter(a => hasSubscriptionHistory(a, keys));
   } else if (currentPlayerFilter === 'no_sub') {
@@ -734,11 +737,12 @@ function render() {
         '</td></tr>';
     } else {
       tableBody.innerHTML = filtered.map(a => {
-        const hasSub = a.subscription && Number(a.subscription.until) > now;
+        const hasSub = ncSubActive(a);
+        const subInfo = ncSub(a) || {};
         let subCol = '<span class="muted">Нет</span>';
         if (hasSub) {
-          const daysLeft = Math.ceil((Number(a.subscription.until) - now) / 86400000);
-          subCol = `<span style="color:#7ee6bb;font-weight:600">● ${esc(a.subscription.name)}</span> <small class="muted" style="font-size:11px">(${daysLeft} дн.)</small>`;
+          const daysLeft = Math.ceil((Number(subInfo.until) - now) / 86400000);
+          subCol = `<span style="color:#7ee6bb;font-weight:600">● ${esc(subInfo.name || 'RustexOrg')}</span> <small class="muted" style="font-size:11px">(${daysLeft} дн.)</small>`;
         } else if (hasSubscriptionHistory(a, keys)) {
           const histDays = getHistoricalSubDays(a, keys);
           subCol = `<span class="muted" style="font-size:11px" title="Была подписка ранее">Была: ${esc(a.lastSubscription?.name || (histDays ? histDays + ' дн.' : 'Истекла'))}</span>`;
@@ -761,7 +765,7 @@ function render() {
           <td>
             <div class="actions">
               <button type="button" data-member="${esc(a.nick)}" data-admin-action="grantSub" ${accountReadState.error ? 'disabled' : ''} style="background:#55308a;border-color:#7f48cc">Подписка</button>
-              <button type="button" data-member="${esc(a.nick)}" data-admin-action="money" ${accountReadState.error ? 'disabled' : ''}>Баланс</button>
+              <button type="button" data-member="${esc(a.nick)}" data-admin-action="money" ${accountReadState.error ? 'disabled' : ''}>Баланс</button><button type="button" data-member="${esc(a.nick)}" data-admin-action="mediaRole" ${accountReadState.error ? 'disabled' : ''}>Роль</button>
               <button type="button" data-member="${esc(a.nick)}" data-admin-action="pass" ${accountReadState.error ? 'disabled' : ''} style="background:#281e3d;border-color:#5a3f87">Пароль</button>
               <button type="button" data-member="${esc(a.nick)}" data-admin-action="hwid" ${accountReadState.error ? 'disabled' : ''}>Сброс HWID</button>
               <button type="button" data-member="${esc(a.nick)}" data-admin-action="block" ${accountReadState.error ? 'disabled' : ''}>${a.blocked ? 'Разблок' : 'Блок'}</button>
@@ -1033,7 +1037,7 @@ function block(n){
 
 function extendRustexSub(account, days) {
   const now = Date.now();
-  const currentUntil = account.subscription && Number(account.subscription.until) > now ? Number(account.subscription.until) : now;
+  const currentUntil = ncSubActive(account) ? Number((ncSub(account) || {}).until) || now : now;
   const until = currentUntil + Number(days) * 86400000;
   const totalDays = Math.max(0, Math.ceil((until - now) / 86400000));
   account.subscription = { name: 'RustexOrg · ' + totalDays + ' дней', days: totalDays, until: until };
@@ -1048,12 +1052,14 @@ function grantSub(n) {
     return;
   }
   const now = Date.now();
-  const hasSub = member.subscription && Number(member.subscription.until) > now;
-  const currentUntilStr = hasSub ? new Date(Number(member.subscription.until)).toLocaleDateString('ru-RU') : 'нет активной подписки';
+  const hasSub = ncSubActive(member);
+  const memberSub = ncSub(member) || {};
+  const currentUntilStr = hasSub ? new Date(Number(memberSub.until)).toLocaleDateString('ru-RU') : 'нет активной подписки';
+  const histDays = hasSub ? 0 : (getHistoricalSubDays(member, readList('nc_keys')) || 0);
 
   openAdminAction({
     title: 'Выдать подписку игроку',
-    description: `Игрок: ${member.nick} (${hasSub ? 'Продление: до ' + currentUntilStr : 'Новая подписка'})`,
+    description: `Игрок: ${member.nick} (${hasSub ? 'Продление: до ' + currentUntilStr : histDays ? 'Была подписка: ' + histDays + ' дн.' : 'Новая подписка'})`,
     symbol: '👑',
     submitLabel: 'Начислить подписку',
     html: `
@@ -1072,7 +1078,7 @@ function grantSub(n) {
         <button type="button" data-sub="365">1 год</button>
       </div>
       <div class="money-summary">
-        <div><span>Текущая подписка</span><strong>${esc(hasSub ? member.subscription.name : 'Отсутствует')}</strong></div>
+        <div><span>Текущая подписка</span><strong>${esc(hasSub ? (memberSub.name || 'Активна до ' + currentUntilStr) : histDays ? 'Была: ' + histDays + ' дн.' : 'Отсутствует')}</strong></div>
         <div><span>Будет действовать</span><strong id="admin-sub-preview"></strong></div>
       </div>
     `,
@@ -1083,7 +1089,7 @@ function grantSub(n) {
         form.querySelector('#admin-action-error').textContent = '';
         const d = parseInt(input.value, 10);
         if (Number.isFinite(d) && d > 0) {
-          const baseUntil = (member.subscription && Number(member.subscription.until) > now) ? Number(member.subscription.until) : now;
+          const baseUntil = ncSubActive(member) ? Number((ncSub(member) || {}).until) || now : now;
           const newUntil = new Date(baseUntil + d * 86400000).toLocaleDateString('ru-RU');
           const totalDays = Math.ceil(((baseUntil + d * 86400000) - now) / 86400000);
           form.querySelector('#admin-sub-preview').textContent = `${totalDays} дн. (до ${newUntil})`;
@@ -1123,7 +1129,7 @@ function grantSub(n) {
 function removeSub(n) {
   const list = accounts(), a = list.find(x => x.nick === n);
   if (!a) return;
-  if (!a.subscription || Number(a.subscription.until) <= Date.now()) {
+  if (!ncSubActive(a)) {
     notify('У игрока ' + n + ' нет активной подписки.', 'info');
     return;
   }
@@ -1196,7 +1202,7 @@ function updateEmergencyPreview() {
     `;
   } else if (action === 'extend_active_subs') {
     if (daysWrap) daysWrap.style.display = 'block';
-    affected = list.filter(a => a.subscription && Number(a.subscription.until) > now);
+    affected = list.filter(ncSubActive);
     const nonSubCount = list.length - affected.length;
     modeTitle = `🎁 Продление активных (+${days} дней)`;
     detailsText = `
@@ -1252,7 +1258,7 @@ function executeEmergencyReissue() {
       <span style="color:#a99ec0">Игроки без истории подписки (${nonAffectedCount} чел.) будут полностью пропущены и подписку не получат.</span>
     `;
   } else if (action === 'extend_active_subs') {
-    affected = list.filter(a => a.subscription && Number(a.subscription.until) > now);
+    affected = list.filter(ncSubActive);
     summaryTitle = `Продление активных подписок на +${days} дней`;
     descriptionText = `
       Продлить подписку на <b>+${days} дней</b> для <b>${affected.length} активных подписчиков</b>.<br>
@@ -1319,7 +1325,7 @@ function executeEmergencyReissue() {
 
 function confirmResetAllSubs() {
   const list = accounts();
-  const subbed = list.filter(a => a.subscription && Number(a.subscription.until) > Date.now());
+  const subbed = list.filter(ncSubActive);
 
   if (!subbed.length) {
     notify('В базе нет пользователей с активными подписками.', 'info');
@@ -1339,7 +1345,7 @@ function confirmResetAllSubs() {
     onSubmit: () => {
       const currentList = accounts();
       currentList.forEach(a => {
-        if (a.subscription && Number(a.subscription.until) > Date.now()) {
+        if (ncSubActive(a)) {
           a.lastSubscription = { ...a.subscription };
           a.subscription = null;
         }
@@ -1639,8 +1645,10 @@ function adminExtras(){
     chatPanel.id='admin-chat';
     chatPanel.className='panel';
     chatPanel.dataset.staffPerm='chat.view';
-    chatPanel.innerHTML='<h2 class="admin-chat-heading">Чат <small>ЛОКАЛЬНОЕ ДЕМО</small></h2><div id="admin-chat-list"></div>';
+    chatPanel.innerHTML='<h2 class="admin-chat-heading">Чат <small>ЛОКАЛЬНОЕ ДЕМО</small></h2><div id="admin-chat-list"></div><div class="admin-chat-send"><input id="admin-chat-input" maxlength="1000" placeholder="Написать в чат как сотрудник…" aria-label="Сообщение в чат"><button type="button" onclick="sendAdminChat()">Отправить</button></div>';
     document.querySelector('main').appendChild(chatPanel);
+    const chatInput=chatPanel.querySelector('#admin-chat-input');
+    if(chatInput)chatInput.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();sendAdminChat();}});
   }
   let supportPanel=document.getElementById('admin-support');
   if(!supportPanel){
@@ -1654,13 +1662,59 @@ function adminExtras(){
   const members=new Map(accounts().map(a=>[a.nick,a]));
   const chat=readList('nc_chat'),start=Math.max(0,chat.length-100);
   const canDeleteChat=typeof staffCan==='function'&&staffCan('chat.delete');
-  setHTML(document.getElementById('admin-chat-list'),chat.slice(start).map((m,i)=>`<div class="admin-chat-message" data-msg-index="${start+i}"><div class="chat-msg-header"><b>${esc(m.nick)}</b>${safeMemberBadge(members.get(m.nick))}${canDeleteChat?`<button type="button" class="chat-delete" data-chat-del="${start+i}" title="Удалить сообщение" aria-label="Удалить сообщение">✕</button>`:''}</div><p>${esc(m.text)}</p></div>`).join('')||'<p class="muted">Сообщений нет</p>');
+  setHTML(document.getElementById('admin-chat-list'),chat.slice(start).map((m,i)=>`<div class="admin-chat-message" data-msg-index="${start+i}"><div class="chat-msg-header"><b>${esc(m.nick)}</b>${chatBadgeFor(m,members)}${canDeleteChat?`<button type="button" class="chat-delete" data-chat-del="${start+i}" title="Удалить сообщение" aria-label="Удалить сообщение">✕</button>`:''}</div><p>${esc(m.text)}</p></div>`).join('')||'<p class="muted">Сообщений нет</p>');
   const canReply=typeof staffCan!=='function'||staffCan('support.reply');
   if(window.NCTickets){window.NCTickets.renderAdmin(document.getElementById('admin-support-list'),{canReply:canReply});}else{setHTML(document.getElementById('admin-support-list'),'<p class="muted">Не удалось загрузить тикеты.</p>');}
 }
 function replySupport(i){const entry=readList('nc_support')[i];if(!entry)return;openAdminAction({title:'Ответить игроку',description:entry.nick+' · '+entry.text,symbol:'↗',submitLabel:'Сохранить ответ',html:'<label for="admin-reply">Твой ответ</label><textarea id="admin-reply" maxlength="2000" aria-describedby="admin-action-error" placeholder="Напишите ответ…">'+esc(entry.reply||'')+'</textarea>',onSubmit:(form,error)=>{const text=form.querySelector('textarea').value.trim();if(!text){error('Напишите ответ перед отправкой.');return false;}const list=readList('nc_support');const found=list[i];if(!found||found.nick!==entry.nick||found.time!==entry.time){error('Обращение изменилось. Откройте его заново.');return false;}found.reply=text;adminStorage.setItem('nc_support',JSON.stringify(list));adminExtras();notify('Ответ для '+entry.nick+' сохранён в локальном обращении.','success','Ответ сохранён');return true;}});}
+function sendAdminChat(){
+ if(typeof staffCan==='function'&&!staffCan('chat.view'))return;
+ let session=null;try{session=JSON.parse(adminStorage.getItem('nc_staff_session')||'null');}catch{}
+ if(!session||!session.name){notify('Сначала войдите в панель, чтобы писать в чат.','error');return;}
+ const input=document.getElementById('admin-chat-input');
+ const text=(input&&input.value||'').trim().slice(0,1000);
+ if(!text)return;
+ const chat=readList('nc_chat');
+ chat.push({nick:session.name,text:text,time:Date.now(),staff:true,role:session.role||''});
+ adminStorage.setItem('nc_chat',JSON.stringify(chat));
+ input.value='';
+ adminExtras();
+ notify('Сообщение отправлено в чат от имени '+session.name+'.','success','Чат');
+}
+function assignMediaRole(n){
+ const member=accounts().find(a=>String(a.nick)===String(n));
+ if(!member){notify('Игрок не найден. Обновите список.','error');return;}
+ const current=member.mediaRole||'';
+ const options=[['','Без роли'],['youtube','YouTube'],['tiktok','TikTok']];
+ openAdminAction({
+  title:'Роль в чате',
+  description:'Игрок: '+member.nick,
+  symbol:'✦',
+  submitLabel:'Сохранить роль',
+  html:'<label for="admin-media-role">Роль рядом с ником в чате</label>'+
+   '<select id="admin-media-role">'+options.map(o=>`<option value="${o[0]}"${o[0]===current?' selected':''}>${o[1]}</option>`).join('')+'</select>'+
+   '<div id="admin-media-preview" style="margin-top:12px;min-height:26px"></div>',
+  onReady:form=>{
+   const sel=form.querySelector('#admin-media-role');
+   const preview=form.querySelector('#admin-media-preview');
+   const paint=()=>{preview.innerHTML=sel.value&&window.mediaChatBadge?mediaChatBadge(sel.value):'<span class="muted" style="font-size:11px">Без роли</span>';};
+   sel.addEventListener('change',paint);paint();
+  },
+  onSubmit:form=>{
+   const value=form.querySelector('#admin-media-role').value;
+   const list=accounts();
+   const target=list.find(x=>x.nick===member.nick);
+   if(!target)return false;
+   target.mediaRole=value||null;
+   save(list);
+   logAdminAction('Роль в чате',`Игрок: ${target.nick}, роль: ${value||'без роли'}`);
+   notify('Роль игрока '+target.nick+' обновлена.','success','Роль в чате');
+   return true;
+  }
+ });
+}
 function exportBackup(){const data={accounts:adminStorage.getItem('nc_accounts')||'[]',keys:adminStorage.getItem('nc_keys')||'[]',promos:adminStorage.getItem('nc_promos')||'[]',chat:adminStorage.getItem('nc_chat')||'[]',support:adminStorage.getItem('nc_support')||'[]',tickets:adminStorage.getItem('nc_tickets')||'[]',logs:adminStorage.getItem('nc_admin_logs')||'[]',server:adminStorage.getItem('nc_server_enabled')||'true',createdAt:new Date().toISOString()};const url=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'})),a=document.createElement('a');a.href=url;a.download='nocturne-backup-'+new Date().toISOString().slice(0,10)+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);notify('Аккаунты, промокоды, ключи и сообщения сохранены.','success','Резервная копия скачана');}
-document.addEventListener('click',e=>{const b=e.target.closest('[data-admin-action]');if(b&&!b.disabled){try{({money,hwid,block,removeSub,grantSub,pass}[b.dataset.adminAction])?.(b.dataset.member);}catch(problem){notify(problem.message||'Не удалось прочитать аккаунт.','error');}}const r=e.target.closest('[data-reply-index]');if(r)replySupport(Number(r.dataset.replyIndex));});
+document.addEventListener('click',e=>{const b=e.target.closest('[data-admin-action]');if(b&&!b.disabled){try{({money,hwid,block,removeSub,grantSub,pass,mediaRole:assignMediaRole}[b.dataset.adminAction])?.(b.dataset.member);}catch(problem){notify(problem.message||'Не удалось прочитать аккаунт.','error');}}const r=e.target.closest('[data-reply-index]');if(r)replySupport(Number(r.dataset.replyIndex));});
 document.addEventListener('keydown',e=>{if(!actionDialog)return;if(e.key==='Escape'){e.preventDefault();closeAdminAction();}if(e.key==='Tab'){const elements=[...actionDialog.form.querySelectorAll('button,input,textarea')].filter(el=>!el.disabled&&el.getClientRects().length);const first=elements[0],last=elements[elements.length-1];if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}}});
 window.addEventListener('storage',refreshAdmin);
 const tools=document.createElement('div');tools.className='panel';tools.dataset.staffPerm='system.backup';tools.innerHTML='<h2>Инструменты администратора</h2><p class="muted">Сохраните копию аккаунтов, ролей, ключей, чата и настроек сервера.</p><button onclick="exportBackup()">Скачать резервную копию</button>';document.querySelector('main').appendChild(tools);

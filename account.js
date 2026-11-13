@@ -9,7 +9,7 @@ function currentAccount(){return getAccounts().find(a=>a.nick===ncStorage.getIte
 function serverEnabled(){return ncStorage.getItem('nc_server_enabled')!=='false';}
 function extendRustexSubscription(account,days){
  const now=Date.now();
- const currentUntil=account.subscription&&Number(account.subscription.until)>now?Number(account.subscription.until):now;
+ const currentUntil=(window.NCStore&&NCStore.isSubActive(account))?Number((NCStore.subscription(account)||{}).until)||now:now;
  const until=currentUntil+Number(days)*86400000;
  const totalDays=Math.max(0,Math.ceil((until-now)/86400000));
  account.subscription={name:'RustexOrg · '+totalDays+' дней',days:totalDays,until};
@@ -82,9 +82,11 @@ function renderChat(){
  const messages=JSON.parse(ncStorage.getItem('nc_chat')||'[]');
  const members=new Map(getAccounts().map(a=>[a.nick,a]));
  el.innerHTML=messages.slice(-50).map(m=>{
-  const role=equippedRoleOf(members.get(m.nick));
+  const member=members.get(m.nick);
+  const media=!m.staff&&window.chatMediaRole?chatMediaRole(member):'';
+  const badge=m.staff&&window.staffChatBadge?staffChatBadge(m.role):(media&&window.mediaChatBadge?mediaChatBadge(media):roleBadgeHTML(equippedRoleOf(member)));
   const timestamp=Number(m.time);const time=Number.isFinite(timestamp)?new Date(timestamp).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}):'';
-  return `<div class="chat-msg"><div class="chat-msg-header"><b>${escapeHTML(m.nick)}</b>${roleBadgeHTML(role)}<time>${escapeHTML(time)}</time></div><span class="chat-message-text">${escapeHTML(m.text)}</span></div>`;
+  return `<div class="chat-msg"><div class="chat-msg-header"><b>${escapeHTML(m.nick)}</b>${badge}<time>${escapeHTML(time)}</time></div><span class="chat-message-text">${escapeHTML(m.text)}</span></div>`;
  }).join('')||'<p class="chat-empty">Сообщений пока нет. Это локальный демо-чат.</p>';
 }
 function sendSupport(){renderSupport();}
@@ -154,13 +156,13 @@ function updateProfile(){
  const avatarHtml=account&&account.avatar?`<img src="${safeAvatar(account.avatar)}" alt="Аватар ${escapeHTML(session||'')}">`:'◈';
  const av=document.getElementById('cabinet-avatar'); if(av) av.innerHTML=avatarHtml;
  const topAv=document.querySelector('.profile .avatar'); if(topAv){topAv.innerHTML=avatarHtml;topAv.classList.toggle('has-image',!!(account&&account.avatar));}
- if(cabinetStatus) cabinetStatus.textContent=account&&account.blocked?'Заблокирован':(account&&account.subscription&&account.subscription.until>Date.now()?'Активна':'Нет подписки');
+ if(cabinetStatus) cabinetStatus.textContent=account&&account.blocked?'Заблокирован':(account&&window.NCStore&&NCStore.isSubActive(account)?'Активна':'Нет подписки');
  const balance=document.getElementById('cabinet-balance'); if(balance) balance.textContent='₽ '+Number(account&&account.balance||0).toLocaleString('ru-RU');
  const loader=document.getElementById('loader-download'); if(loader){const caption=loader.querySelector('button');if(caption)caption.textContent='Скачать лоадер';loader.setAttribute('aria-label','Скачать лоадер');loader.style.opacity=serverEnabled()?'1':'.45';loader.title=serverEnabled()?'Скачать лоадер':'Сервер отключён';}
  const sub=document.getElementById('cabinet-subscription');
  const hw=document.getElementById('cabinet-hwid'); if(hw) hw.textContent=account&&account.hwid||'Не привязан';
- const days=document.getElementById('cabinet-days'); if(days){const d=account&&account.subscription?Math.max(0,Math.ceil((account.subscription.until-Date.now())/86400000)):0; days.textContent=d+' дн.'; if(sub) sub.textContent=d>0?'RustEx · '+d+' дней':'Нет подписки';}
- const until=document.getElementById('cabinet-until'); if(until) until.textContent=account&&account.subscription?new Date(account.subscription.until).toLocaleDateString('ru-RU'):'—';
+ const days=document.getElementById('cabinet-days'); if(days){const d=(account&&window.NCStore&&NCStore.isSubActive(account))?Math.max(0,Math.ceil((NCStore.subscription(account).until-Date.now())/86400000)):0; days.textContent=d+' дн.'; if(sub) sub.textContent=d>0?'RustEx · '+d+' дней':'Нет подписки';}
+ const until=document.getElementById('cabinet-until'); if(until){const subInfo=account&&window.NCStore?NCStore.subscription(account):null;until.textContent=subInfo&&subInfo.until?new Date(subInfo.until).toLocaleDateString('ru-RU'):'—';}
  if(cabinetDate) cabinetDate.textContent=account&&account.createdAt?new Date(account.createdAt).toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}):'—';
  renderChat();
  renderSupport();
