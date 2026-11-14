@@ -208,7 +208,7 @@ function renderUserPurchases(){
   listEl.innerHTML = myKeys.slice().reverse().map(k => {
     const dateStr = k.createdAt ? new Date(k.createdAt).toLocaleDateString('ru-RU') : '—';
     const promoHtml = k.promo ? `<span style="background:#3d2459;color:#e1b8ff;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:600;margin-left:4px">скидка по промокоду ${escapeHTML(k.promo)}</span>` : '';
-    const tariff = k.days ? `${k.days} дней` : 'Сброс HWID';
+    const tariff = k.trial ? 'Пробная · 1 день' : k.days ? `${k.days} дней` : 'Сброс HWID';
     return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:#181323;border:1px solid #362947;border-radius:8px;font-size:12px;flex-wrap:wrap;gap:8px">
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
         <code style="background:#251c33;padding:3px 8px;border-radius:5px;color:#e8ddf5;font-weight:600;letter-spacing:.5px">${escapeHTML(k.code)}</code>
@@ -245,11 +245,40 @@ function closeCabinet(){
  const c=document.getElementById('account');
  if(c)closePanel(c,()=>{c.classList.remove('visible');document.body.classList.remove('cabinet-open');});
 }
+function subActive(acc){
+ if(window.NCStore&&typeof NCStore.isSubActive==='function')return !!NCStore.isSubActive(acc);
+ const sub=(window.NCStore&&typeof NCStore.subscription==='function'?NCStore.subscription(acc):null)||{};
+ return !!(sub&&Number(sub.until)>Date.now());
+}
+// Пробную активируют один раз на аккаунт: проверяем отметку и историю ключей.
+function trialAlreadyUsed(acc,keys){
+ if(!acc)return true;
+ if(Number(acc.trialUsedAt)>0)return true;
+ return (Array.isArray(keys)?keys:[]).some(k=>k&&k.trial&&k.usedBy===acc.nick);
+}
 function redeemKey(){
  if(!serverEnabled())return showNC('Сервер временно отключён. Активация ключей недоступна','error');
  const input=document.getElementById('cabinet-key'); const code=(input&&input.value||'').trim().toUpperCase(); if(!code)return showNC('Введите ключ');
  const keys=JSON.parse(ncStorage.getItem('nc_keys')||'[]'); const item=keys.find(k=>k.code===code&&!k.used); if(!item)return showNC('Ключ недействителен или уже использован');
  const session=ncStorage.getItem('nc_session'); const accounts=getAccounts(); const acc=accounts.find(a=>a.nick===session); if(!acc)return;
+ if(item.trial){
+  if(trialAlreadyUsed(acc,keys))return showNC('Пробная подписка уже выдавалась этому аккаунту — второй раз нельзя','error');
+  if(subActive(acc))return showNC('У аккаунта уже есть активная подписка — пробная выдаётся только без подписки','info');
+  const totalDays=extendRustexSubscription(acc,1);
+  const until=Number((acc.subscription||{}).until)||Date.now();
+  const name='Пробная · 1 день';
+  acc.subscription={name:name,days:1,trial:true,until:until};
+  acc.lastSubscription={name:name,days:1,until:until,updatedAt:Date.now(),trial:true};
+  acc.trialUsedAt=Date.now();
+  acc.trialKey=item.code;
+  item.used=true;item.usedBy=acc.nick;item.activatedAt=Date.now();item.trialActivated=true;
+  saveAccounts(accounts);
+  ncStorage.setItem('nc_keys',JSON.stringify(keys));
+  if(input)input.value='';
+  updateProfile();
+  showNC('Пробная подписка активирована: 1 день. Продлить можно обычным ключом или покупкой','success');
+  return;
+ }
  if(item.days===0){acc.hwid='';showNC('HWID сброшен');} else {const totalDays=extendRustexSubscription(acc,item.days);showNC('Ключ активирован. Подписка теперь '+totalDays+' дней');} saveAccounts(accounts); item.used=true; item.usedBy=acc.nick; item.activatedAt=Date.now(); ncStorage.setItem('nc_keys',JSON.stringify(keys)); input.value=''; updateProfile();
 }
 function openAccount(){

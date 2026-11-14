@@ -57,6 +57,7 @@
     { id: 'keys.view', label: 'Смотреть ключи подписок' },
     { id: 'keys.generate', label: 'Создавать ключи подписок' },
     { id: 'keys.revoke', label: 'Отключать и удалять ключи подписок' },
+    { id: 'keys.trial', label: 'Выдавать пробную подписку (1 день)' },
     { id: 'promos.manage', label: 'Управлять промокодами' },
     { id: 'subs.mass', label: 'Массовые операции с подписками' },
     { id: 'server.manage', label: 'Включать и отключать сервер' },
@@ -785,6 +786,7 @@
 
   var GUARDED = {
     generateKey: 'keys.generate',
+    generateTrialKey: 'keys.trial',
     disableKey: 'keys.revoke',
     deleteKey: 'keys.revoke',
     clearUsedKeys: 'keys.revoke',
