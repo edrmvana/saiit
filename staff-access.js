@@ -13,7 +13,6 @@
 (function () {
   'use strict';
 
-  var OWNER_PASSWORD = 'qwerty123123';
   var SESSION_STORAGE = 'nc_staff_session';
   var KEYS_STORAGE = 'nc_staff_keys';
   var CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -268,17 +267,11 @@
       '    <button type="submit">Войти по ключу</button>',
       '  </form>',
       '  <form id="staff-form-owner" novalidate hidden>',
-      '    <label for="staff-pass">Пароль владельца</label>',
-      '    <input id="staff-pass" type="password" autocomplete="current-password" placeholder="Пароль">',
-      '    <button type="submit">Войти как владелец</button>',
-      '    <div class="staff-or"><span>или</span></div>',
-      '    <button type="button" class="staff-code-toggle" id="staff-code-toggle">Войти по коду из приложения</button>',
-      '    <div class="staff-code-box" id="staff-code-box" hidden>',
-      '      <label for="staff-owner-code">Одноразовый код</label>',
-      '      <input id="staff-owner-code" autocomplete="one-time-code" spellcheck="false" placeholder="OWN-XXXX-XXXX" maxlength="20">',
-      '      <button type="button" class="staff-code-submit" id="staff-code-submit">Войти по коду</button>',
-      '      <p class="staff-code-hint">Код создаётся в приложении <b>NOCTURNE Owner Key</b> на этом компьютере и сгорает после первого входа.</p>',
-      '    </div>',
+      '    <label for="staff-owner-code">Одноразовый код</label>',
+      '    <input id="staff-owner-code" autocomplete="one-time-code" spellcheck="false" placeholder="OWN-XXXX-XXXX" maxlength="20">',
+      '    <button type="submit" class="staff-code-submit" id="staff-code-submit">Войти по коду</button>',
+      '    <p class="staff-app-state" id="staff-app-state" data-state="unknown" role="status">Проверяем приложение <b>NOCTURNE Owner Key</b>…</p>',
+      '    <p class="staff-code-hint">Код создаётся в приложении <b>NOCTURNE Owner Key</b> на этом компьютере: живёт 5 минут и сгорает после первого входа. Пароля у владельца нет — только код.</p>',
       '  </form>',
       '  <p class="staff-lock-msg" id="staff-lock-msg" role="alert"></p>',
       '  <p class="staff-lock-hint">Ключи создаёт владелец в разделе «Сотрудники и доступы». Ключ действует до отзыва.</p>',
@@ -301,30 +294,11 @@
 
     lock.querySelector('#staff-form-owner').addEventListener('submit', function (event) {
       event.preventDefault();
-      var pass = lock.querySelector('#staff-pass').value;
-      if (pass !== OWNER_PASSWORD) {
-        setLockMessage('Неверный пароль владельца.');
-        return;
-      }
-      writeSession({ kind: 'owner', role: 'owner', name: 'Владелец', loginAt: Date.now() });
-      finishLogin();
-    });
-
-    lock.querySelector('#staff-code-toggle').addEventListener('click', function () {
-      var box = lock.querySelector('#staff-code-box');
-      box.hidden = !box.hidden;
-      if (!box.hidden) lock.querySelector('#staff-owner-code').focus();
+      verifyOwnerCode();
     });
 
     lock.querySelector('#staff-code-submit').addEventListener('click', function () {
       verifyOwnerCode();
-    });
-
-    lock.querySelector('#staff-owner-code').addEventListener('keydown', function (event) {
-      if (event.key === 'Enter') {
-        event.preventDefault();
-        verifyOwnerCode();
-      }
     });
 
     return lock;
@@ -340,8 +314,9 @@
     lockEl.querySelector('#staff-form-staff').hidden = name !== 'staff';
     lockEl.querySelector('#staff-form-owner').hidden = name !== 'owner';
     setLockMessage('');
-    var input = lockEl.querySelector(name === 'staff' ? '#staff-key' : '#staff-pass');
+    var input = lockEl.querySelector(name === 'staff' ? '#staff-key' : '#staff-owner-code');
     if (input) input.focus();
+    if (name === 'owner') refreshOwnerAppStatus();
   }
 
   function setLockMessage(text) {
@@ -403,6 +378,52 @@
     return base.replace(/\/+$/, '');
   }
 
+  var ownerStatusTimer = 0;
+
+  // Показываем, на связи ли приложение владельца: без него войти нельзя.
+  function setOwnerAppState(state, html) {
+    var node = lockEl && lockEl.querySelector('#staff-app-state');
+    if (!node) return;
+    node.setAttribute('data-state', state);
+    node.innerHTML = html;
+  }
+
+  function scheduleOwnerStatusRefresh() {
+    if (ownerStatusTimer) clearTimeout(ownerStatusTimer);
+    ownerStatusTimer = setTimeout(function () {
+      ownerStatusTimer = 0;
+      refreshOwnerAppStatus();
+    }, 5000);
+  }
+
+  function refreshOwnerAppStatus() {
+    if (!lockEl || !document.body.contains(lockEl)) return;
+    var ownerForm = lockEl.querySelector('#staff-form-owner');
+    if (ownerForm && ownerForm.hidden) return;
+    if (typeof window.fetch !== 'function') {
+      setOwnerAppState('off', 'Браузер не поддерживает проверку кода.');
+      return;
+    }
+    setOwnerAppState('unknown', 'Проверяем приложение <b>NOCTURNE Owner Key</b>…');
+    window.fetch(ownerAppUrl() + '/api/owner/status', { cache: 'no-store' })
+      .then(function (response) { return response.json(); })
+      .then(function (data) {
+        if (!data || data.ok !== true) throw new Error('bad status');
+        if (data.hasCode) {
+          var left = Math.max(0, Math.round((Number(data.expiresAt) - Date.now()) / 1000));
+          setOwnerAppState('ok', 'Приложение на связи · код готов, осталось ' +
+            Math.floor(left / 60) + ':' + String(left % 60).padStart(2, '0'));
+        } else {
+          setOwnerAppState('ok', 'Приложение на связи · нажмите «Сгенерировать код» в приложении и вставьте код.');
+        }
+        scheduleOwnerStatusRefresh();
+      })
+      .catch(function () {
+        setOwnerAppState('off', 'Приложение не запущено. Откройте <b>NOCTURNE Owner Key</b> на этом компьютере и сгенерируйте код.');
+        scheduleOwnerStatusRefresh();
+      });
+  }
+
   function verifyOwnerCode() {
     if (!lockEl) return;
     var input = lockEl.querySelector('#staff-owner-code');
@@ -430,10 +451,12 @@
         return;
       }
       restore('');
+      setOwnerAppState('ok', 'Код принят. Приложение на связи.');
       writeSession({ kind: 'owner', role: 'owner', name: 'Владелец', loginAt: Date.now() });
       logAction('Вход владельца по одноразовому коду', 'NOCTURNE Owner Key');
       finishLogin();
     }).catch(function () {
+      setOwnerAppState('off', 'Приложение не запущено. Откройте <b>NOCTURNE Owner Key</b> на этом компьютере и сгенерируйте код.');
       restore('Приложение NOCTURNE Owner Key не запущено на этом компьютере.');
     });
   }
@@ -860,6 +883,7 @@
   // Публичный минимум для основного скрипта панели и inline-обработчиков.
   window.staffCan = staffCan;
   window.verifyOwnerCode = verifyOwnerCode;
+  window.refreshOwnerAppStatus = refreshOwnerAppStatus;
   window.staffCurrentActor = staffCurrentActor;
   window.staffDeleteChat = deleteChatMessage;
   window.staffLogout = function () {

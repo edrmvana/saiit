@@ -559,63 +559,14 @@ body.staff-locked main {
 
 /* ---------- вход владельца по одноразовому коду ---------- */
 
-.staff-or {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin: 14px 0 12px;
-  color: #7e6b8b;
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: .08em;
-}
-
-.staff-or::before,
-.staff-or::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background: #3a2949;
-}
-
-.staff-code-toggle {
-  width: 100%;
-  padding: 10px;
-  border: 1px dashed #6b4a89;
-  border-radius: 9px;
-  background: transparent;
-  color: #c9a9ea;
-  font-size: 12px;
-  cursor: pointer;
-  transition: border-color .18s ease, color .18s ease, background .18s ease;
-}
-
-.staff-code-toggle:hover {
-  border-color: #a175d6;
-  color: #eaddff;
-  background: #1a1226;
-}
-
-.staff-code-box {
-  margin-top: 12px;
-  padding: 12px;
-  border: 1px solid #4a3160;
-  border-radius: 10px;
-  background: #140e1f;
-}
-
-.staff-code-box[hidden] {
-  display: none;
-}
-
-.staff-code-box input#staff-owner-code {
+#staff-owner-code {
   font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
   text-transform: uppercase;
   letter-spacing: .12em;
   text-align: center;
 }
 
-.staff-code-box .staff-code-submit {
+#staff-form-owner .staff-code-submit {
   width: 100%;
   padding: 11px;
   border: 1px solid #b080db70;
@@ -625,11 +576,47 @@ body.staff-locked main {
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
+  margin-top: 10px;
 }
 
-.staff-code-submit:disabled {
+#staff-form-owner .staff-code-submit:disabled {
   opacity: .6;
   cursor: default;
+}
+
+.staff-app-state {
+  margin: 10px 0 0;
+  padding: 8px 10px;
+  border: 1px solid #3a2949;
+  border-radius: 8px;
+  background: #140e1f;
+  font-size: 11px;
+  line-height: 1.5;
+  color: #a292b3;
+}
+
+.staff-app-state b {
+  color: #d9c3f0;
+}
+
+.staff-app-state[data-state="ok"] {
+  border-color: #2f5b47;
+  background: #10201a;
+  color: #8ee8b4;
+}
+
+.staff-app-state[data-state="ok"] b {
+  color: #b7f5d2;
+}
+
+.staff-app-state[data-state="off"] {
+  border-color: #6a2f3d;
+  background: #23121a;
+  color: #ffa8b8;
+}
+
+.staff-app-state[data-state="off"] b {
+  color: #ffd0d9;
 }
 
 .staff-code-hint {
