@@ -270,6 +270,14 @@
       '    <label for="staff-pass">Пароль владельца</label>',
       '    <input id="staff-pass" type="password" autocomplete="current-password" placeholder="Пароль">',
       '    <button type="submit">Войти как владелец</button>',
+      '    <div class="staff-or"><span>или</span></div>',
+      '    <button type="button" class="staff-code-toggle" id="staff-code-toggle">Войти по коду из приложения</button>',
+      '    <div class="staff-code-box" id="staff-code-box" hidden>',
+      '      <label for="staff-owner-code">Одноразовый код</label>',
+      '      <input id="staff-owner-code" autocomplete="one-time-code" spellcheck="false" placeholder="OWN-XXXX-XXXX" maxlength="20">',
+      '      <button type="button" class="staff-code-submit" id="staff-code-submit">Войти по коду</button>',
+      '      <p class="staff-code-hint">Код создаётся в приложении <b>NOCTURNE Owner Key</b> на этом компьютере и сгорает после первого входа.</p>',
+      '    </div>',
       '  </form>',
       '  <p class="staff-lock-msg" id="staff-lock-msg" role="alert"></p>',
       '  <p class="staff-lock-hint">Ключи создаёт владелец в разделе «Сотрудники и доступы». Ключ действует до отзыва.</p>',
@@ -299,6 +307,23 @@
       }
       writeSession({ kind: 'owner', role: 'owner', name: 'Владелец', loginAt: Date.now() });
       finishLogin();
+    });
+
+    lock.querySelector('#staff-code-toggle').addEventListener('click', function () {
+      var box = lock.querySelector('#staff-code-box');
+      box.hidden = !box.hidden;
+      if (!box.hidden) lock.querySelector('#staff-owner-code').focus();
+    });
+
+    lock.querySelector('#staff-code-submit').addEventListener('click', function () {
+      verifyOwnerCode();
+    });
+
+    lock.querySelector('#staff-owner-code').addEventListener('keydown', function (event) {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        verifyOwnerCode();
+      }
     });
 
     return lock;
@@ -370,6 +395,46 @@
     }
     writeSession({ kind: 'staff', role: key.role, name: name, keyCode: key.code, loginAt: Date.now() });
     return '';
+  }
+
+  function ownerAppUrl() {
+    var base = String(window.NC_OWNER_APP_URL || 'http://127.0.0.1:47830');
+    return base.replace(/\/+$/, '');
+  }
+
+  function verifyOwnerCode() {
+    if (!lockEl) return;
+    var input = lockEl.querySelector('#staff-owner-code');
+    var button = lockEl.querySelector('#staff-code-submit');
+    var code = String((input && input.value) || '').trim();
+    if (!code) { setLockMessage('Введите код из приложения.'); return; }
+    var restore = function (message) {
+      if (button) { button.disabled = false; button.textContent = 'Войти по коду'; }
+      if (message) setLockMessage(message);
+    };
+    if (button) { button.disabled = true; button.textContent = 'Проверяем…'; }
+    if (typeof window.fetch !== 'function') {
+      restore('Браузер не поддерживает проверку кода. Войдите по паролю владельца.');
+      return;
+    }
+    window.fetch(ownerAppUrl() + '/api/owner/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code: code })
+    }).then(function (response) {
+      return response.json();
+    }).then(function (data) {
+      if (!data || !data.ok) {
+        restore((data && data.error) || 'Код не подошёл.');
+        return;
+      }
+      restore('');
+      writeSession({ kind: 'owner', role: 'owner', name: 'Владелец', loginAt: Date.now() });
+      logAction('Вход владельца по одноразовому коду', 'NOCTURNE Owner Key');
+      finishLogin();
+    }).catch(function () {
+      restore('Приложение NOCTURNE Owner Key не запущено на этом компьютере.');
+    });
   }
 
   function finishLogin() {
@@ -792,6 +857,7 @@
 
   // Публичный минимум для основного скрипта панели и inline-обработчиков.
   window.staffCan = staffCan;
+  window.verifyOwnerCode = verifyOwnerCode;
   window.staffCurrentActor = staffCurrentActor;
   window.staffDeleteChat = deleteChatMessage;
   window.staffLogout = function () {
