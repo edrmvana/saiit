@@ -126,7 +126,7 @@ function submitNC(){
  if(ncMode==='register'){
   if(saved){showNC('Этот логин уже зарегистрирован');return;} 
   if(accounts.length>=3){showNC('Можно зарегистрировать максимум 3 аккаунта');return;}
-  accounts.push({nick,pass,email:'',verified:true,createdAt:new Date().toISOString(),balance:0,subscription:null,hwid:'',blocked:false});
+  accounts.push({nick,pass,verified:true,createdAt:new Date().toISOString(),balance:0,subscription:null,hwid:'',blocked:false});
   saveAccounts(accounts);
   ncStorage.setItem('nc_session',nick); closeAccount(()=>resumeCabinetTarget()); updateProfile(); showNC('Демо-аккаунт создан. Добро пожаловать!','success');
   return;

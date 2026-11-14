@@ -22,20 +22,12 @@
  *   node server.js setbuild <путь к файлу>
  *   node server.js news    <текст>        (заменить новости одной строкой)
  *   node server.js addnews <текст>        (добавить строку новостей)
- *   node server.js setemail <логин> <почта>    (привязать e-mail)
- *   node server.js emailverified <логин> [0|1] (отметить почту подтверждённой)
- *   node server.js emailtest <адрес>           (проверить отправку письма)
- *   node server.js mailstatus                 (показать настройки SMTP)
- *
- * Почта: SMTP_HOST, SMTP_PORT, SMTP_SECURE, SMTP_STARTTLS, SMTP_USER,
- * SMTP_PASS, MAIL_FROM, MAIL_FROM_NAME (см. mailer.js и README).
  */
 
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const mailer = require('./mailer');
 
 const ROOT = __dirname;
 const DB_PATH = path.join(ROOT, 'db.json');
@@ -46,15 +38,10 @@ const PUBLIC_URL = String(process.env.PUBLIC_URL || '').replace(/\/+$/, '');
 const SESSION_TTL = 12 * 60 * 60 * 1000; // 12 часов
 const TICKET_TTL = 5 * 60 * 1000;        // 5 минут
 const MAX_BODY = 16 * 1024;
-const CODE_TTL = 10 * 60 * 1000;        // код подтверждения — 10 минут
-const CODE_COOLDOWN = 60 * 1000;         // повторная отправка — раз в минуту
-const CODE_ATTEMPTS = 5;                 // попыток ввода на один код
 
 const sessions = new Map(); // token -> { nick, expires }
 const tickets = new Map();  // ticket -> { file, name, expires }
 const attempts = new Map(); // ip -> { count, reset }
-const signupHits = new Map(); // ip -> { count, reset } для писем без аккаунта
-const emailHits = new Map();  // email -> { count, reset }
 
 function sha256(text) {
   return crypto.createHash('sha256').update(text, 'utf8').digest('hex');
@@ -93,8 +80,6 @@ function defaultDb() {
       'Обновления выходят по мере необходимости — просто запустите лоадер снова.'
     ],
     users: [],
-    emailCodes: {},
-    emailSignups: {},
     build: { name: 'cheat.exe', file: '', sha256: '', size: 0, version: '1.0.0' }
   };
 }
@@ -105,8 +90,6 @@ function loadDb() {
     if (!db || !Array.isArray(db.users)) throw new Error('bad db');
     if (!db.build) db.build = { name: 'cheat.exe', file: '', sha256: '', size: 0, version: '1.0.0' };
     if (!Array.isArray(db.news)) db.news = [];
-    if (!db.emailCodes || typeof db.emailCodes !== 'object') db.emailCodes = {};
-    if (!db.emailSignups || typeof db.emailSignups !== 'object') db.emailSignups = {};
     return db;
   } catch (error) {
     const db = defaultDb();
@@ -136,8 +119,6 @@ function currentDb(fallback) {
     if (data && Array.isArray(data.users)) {
       if (!data.build) data.build = { name: 'cheat.exe', file: '', sha256: '', size: 0, version: '1.0.0' };
       if (!Array.isArray(data.news)) data.news = [];
-      if (!data.emailCodes || typeof data.emailCodes !== 'object') data.emailCodes = {};
-      if (!data.emailSignups || typeof data.emailSignups !== 'object') data.emailSignups = {};
       return data;
     }
   } catch (error) { /* оставляем последнюю известную базу */ }
@@ -156,124 +137,6 @@ function safeEqual(a, b) {
   return crypto.timingSafeEqual(left, right);
 }
 
-
-/* --------------------------------------------------------------- e-mail */
-
-function normEmail(value) {
-  return String(value || '').trim().toLowerCase();
-}
-
-function validEmail(value) {
-  return /^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/.test(String(value || '').trim());
-}
-
-function escapeHtmlServer(value) {
-  return String(value == null ? '' : value).replace(/[&<>"']/g, char => ({
-    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-  }[char]));
-}
-
-function emailLetter(nick, code, purpose) {
-  const safeNick = escapeHtmlServer(nick);
-  const reset = purpose === 'reset';
-  const title = reset ? 'Сброс пароля NOCTURNE' : 'Код подтверждения NOCTURNE';
-  const action = reset ? 'сброса пароля' : 'подтверждения почты';
-  const text = [
-    'NOCTURNE',
-    '',
-    'Здравствуйте, ' + nick + '!',
-    '',
-    'Код ' + action + ': ' + code,
-    '',
-    'Код действует 10 минут и подходит только для одной попытки подтверждения.',
-    'Если вы не запрашивали код, просто проигнорируйте письмо — аккаунт останется как есть.',
-    '',
-    'Сотрудники NOCTURNE никогда не спрашивают код. Никому его не сообщайте.',
-    '',
-    '— NOCTURNE'
-  ].join('\n');
-  const html = [
-    '<div style="background:#0b0713;padding:32px 16px;font-family:Segoe UI,Arial,sans-serif">',
-    '<div style="max-width:520px;margin:0 auto;background:#140d1f;border:1px solid #3a2450;border-radius:16px;padding:28px;color:#e9e2f5">',
-    '<div style="letter-spacing:6px;font-size:12px;color:#9a7bd4;margin-bottom:18px">NOCTURNE</div>',
-    '<h2 style="margin:0 0 12px;font-size:20px;color:#fff">' + title + '</h2>',
-    '<p style="margin:0 0 18px;color:#b9a9d0">Здравствуйте, ' + safeNick + '! Ваш код ' + action + ':</p>',
-    '<div style="font-size:32px;letter-spacing:10px;font-weight:700;color:#fff;background:#1d1230;border-radius:12px;padding:16px;text-align:center">' + code + '</div>',
-    '<p style="margin:18px 0 0;color:#8d7aa8;font-size:13px">Код действует 10 минут. Если вы не запрашивали его — просто проигнорируйте письмо.</p>',
-    '<p style="margin:10px 0 0;color:#8d7aa8;font-size:13px">Сотрудники NOCTURNE никогда не спрашивают код.</p>',
-    '</div></div>'
-  ].join('');
-  return { subject: title, text, html };
-}
-
-function signupAllowed() {
-  return process.env.MAIL_ALLOW_SIGNUP !== '0';
-}
-
-function signupRateLimited(ip) {
-  const now = Date.now();
-  const state = signupHits.get(ip);
-  if (!state || now > state.reset) {
-    signupHits.set(ip, { count: 1, reset: now + 60 * 60 * 1000 });
-    return false;
-  }
-  state.count += 1;
-  return state.count > 5;
-}
-
-function emailRateLimited(email) {
-  const now = Date.now();
-  const state = emailHits.get(email);
-  if (!state || now > state.reset) {
-    emailHits.set(email, { count: 1, reset: now + 60 * 60 * 1000 });
-    return false;
-  }
-  state.count += 1;
-  return state.count > 5;
-}
-
-function applyCors(res) {
-  res.setHeader('Access-Control-Allow-Origin', String(process.env.MAIL_ALLOWED_ORIGIN || '*'));
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Vary', 'Origin');
-}
-
-function readParams(req) {
-  return new Promise((resolve, reject) => {
-    let body = '';
-    req.on('data', chunk => {
-      body += chunk;
-      if (body.length > MAX_BODY) {
-        reject(new Error('too large'));
-        req.destroy();
-      }
-    });
-    req.on('end', () => {
-      const type = String(req.headers['content-type'] || '');
-      let params;
-      if (/application\/json/i.test(type)) {
-        try {
-          params = JSON.parse(body || '{}');
-        } catch (error) {
-          return reject(new Error('bad json'));
-        }
-      } else {
-        params = {};
-        for (const [key, value] of new URLSearchParams(body)) params[key] = value;
-      }
-      resolve({
-        login: String(params.login || params.nick || '').trim(),
-        password: String(params.password || ''),
-        newPassword: String(params.newPassword || params.password2 || ''),
-        email: String(params.email || '').trim(),
-        code: String(params.code || '').trim(),
-        purpose: String(params.purpose || 'verify').trim()
-      });
-    });
-    req.on('error', reject);
-  });
-}
 
 /* ------------------------------------------------------------------ CLI */
 
@@ -356,56 +219,6 @@ function cli(args) {
     return;
   }
 
-  if (command === 'setemail') {
-    const user = findUser(db, args[1]);
-    if (!user) return console.log('Пользователь не найден.');
-    const email = normEmail(args[2]);
-    if (!validEmail(email)) return console.log('Некорректный e-mail.');
-    user.email = email;
-    user.emailVerified = false;
-    saveDb(db);
-    console.log(`Почта ${user.nick}: ${email} (не подтверждена). Подтвердить: node server.js emailverified ${user.nick} 1`);
-    return;
-  }
-
-  if (command === 'emailverified') {
-    const user = findUser(db, args[1]);
-    if (!user) return console.log('Пользователь не найден.');
-    user.emailVerified = String(args[2] || '1') !== '0';
-    saveDb(db);
-    console.log(`Почта ${user.nick}: ${user.emailVerified ? 'подтверждена' : 'не подтверждена'}.`);
-    return;
-  }
-
-  if (command === 'mailstatus') {
-    const info = mailer.describe();
-    console.log(info.configured ? 'SMTP настроен.' : 'SMTP НЕ настроен: письма складываются в ' + info.outbox);
-    console.log('  host:     ' + (info.host || '—'));
-    console.log('  port:     ' + info.port);
-    console.log('  secure:   ' + (info.secure ? 'да (TLS сразу)' : 'нет (STARTTLS)'));
-    console.log('  starttls: ' + (info.starttls ? 'да' : 'нет'));
-    console.log('  from:     ' + (info.from || '—'));
-    console.log('  debug:    ' + (info.debug ? 'включён (SMTP_DEBUG=1)' : 'выключен'));
-    console.log('  письма без аккаунта: ' + (signupAllowed() ? 'разрешены (MAIL_ALLOW_SIGNUP=0 отключает)' : 'отключены'));
-    return;
-  }
-
-  if (command === 'emailtest') {
-    const to = normEmail(args[1]);
-    if (!validEmail(to)) return console.log('Использование: node server.js emailtest <адрес>');
-    mailer.deliver({
-      to,
-      subject: 'NOCTURNE: проверка почты',
-      text: 'Это тестовое письмо от сервера NOCTURNE. Если вы его видите, отправка настроена верно.',
-      html: '<div style="background:#0b0713;color:#e9e2f5;font-family:Segoe UI,Arial,sans-serif;padding:24px;border-radius:12px">Это тестовое письмо от сервера NOCTURNE. Отправка настроена верно.</div>'
-    }).then(result => {
-      console.log(result.delivery === 'smtp' ? 'Письмо отправлено через SMTP на ' + to : 'SMTP не настроен, письмо сохранено в ' + result.file);
-    }).catch(error => {
-      console.log('Не удалось отправить письмо: ' + error.message);
-    });
-    return;
-  }
-
   if (command === 'setbuild') {
     const source = args[1];
     if (!source || !fs.existsSync(source)) {
@@ -439,7 +252,7 @@ function cli(args) {
     return;
   }
 
-  console.log('Неизвестная команда. Доступно: serve, adduser, deluser, users, passwd, extend, ban, setbuild, news, addnews, setemail, emailverified, emailtest, mailstatus.');
+  console.log('Неизвестная команда. Доступно: serve, adduser, deluser, users, passwd, extend, ban, setbuild, news, addnews, .');
 }
 
 /* --------------------------------------------------------------- HTTP */
@@ -498,75 +311,6 @@ function sessionFor(req) {
     return null;
   }
   return session;
-}
-
-async function handleSignupCode(db, params, ip, res) {
-  if (!signupAllowed()) return sendText(res, 200, 'ERR\nmessage=Подтверждение почты без аккаунта отключено на сервере.');
-  const email = normEmail(params.email);
-  if (!validEmail(email)) return sendText(res, 200, 'ERR\nmessage=Введите корректный e-mail.');
-  const key = 'email:' + email;
-  const previous = db.emailSignups[key];
-  if (previous && Date.now() - Number(previous.sentAt || 0) < CODE_COOLDOWN) {
-    const retry = Math.max(1, Math.ceil((CODE_COOLDOWN - (Date.now() - Number(previous.sentAt || 0))) / 1000));
-    return sendText(res, 200, ['ERR', 'retry=' + retry, 'message=Код уже отправлен. Повторите через ' + retry + ' с.'].join('\n'));
-  }
-  if (signupRateLimited(ip) || emailRateLimited(email)) {
-    return sendText(res, 200, 'ERR\nmessage=Слишком много писем на этот адрес. Попробуйте через час.');
-  }
-  const code = String(crypto.randomInt(0, 1000000)).padStart(6, '0');
-  const salt = randomHex(8);
-  const expiresAt = Date.now() + CODE_TTL;
-  db.emailSignups[key] = {
-    email,
-    salt,
-    hash: sha256(salt + ':' + code),
-    sentAt: Date.now(),
-    expiresAt,
-    attempts: 0
-  };
-  saveDb(db);
-  const letter = emailLetter(email.split('@')[0], code, 'verify');
-  try {
-    const result = await mailer.deliver({ to: email, ...letter });
-    if (result.delivery !== 'smtp') console.log('[mail] код для ' + email + ': ' + code + ' (SMTP не настроен, письмо в ' + result.file + ')');
-    return sendText(res, 200, [
-      'OK',
-      'signup=1',
-      'delivery=' + result.delivery,
-      'email=' + email,
-      'expires=' + isoDate(expiresAt),
-      'ttl=' + Math.round(CODE_TTL / 1000),
-      'cooldown=' + Math.round(CODE_COOLDOWN / 1000)
-    ].join('\n'));
-  } catch (error) {
-    delete db.emailSignups[key];
-    saveDb(db);
-    return sendText(res, 200, 'ERR\nmessage=Не удалось отправить письмо: ' + String(error.message || error).replace(/[\r\n]+/g, ' '));
-  }
-}
-
-async function handleSignupVerify(db, params, res) {
-  const email = normEmail(params.email);
-  const key = 'email:' + email;
-  const record = db.emailSignups[key];
-  if (!record) return sendText(res, 200, 'ERR\nmessage=Код не запрашивался или уже использован.');
-  if (Date.now() > Number(record.expiresAt || 0)) {
-    delete db.emailSignups[key];
-    saveDb(db);
-    return sendText(res, 200, 'ERR\nmessage=Код истёк. Запросите новый.');
-  }
-  if (Number(record.attempts || 0) >= CODE_ATTEMPTS) {
-    return sendText(res, 200, 'ERR\nmessage=Слишком много неверных попыток. Запросите новый код.');
-  }
-  if (!safeEqual(sha256(record.salt + ':' + params.code), record.hash)) {
-    record.attempts = Number(record.attempts || 0) + 1;
-    saveDb(db);
-    const left = Math.max(0, CODE_ATTEMPTS - record.attempts);
-    return sendText(res, 200, ['ERR', 'code=wrong', 'left=' + left, 'message=Неверный код. Осталось попыток: ' + left + '.'].join('\n'));
-  }
-  delete db.emailSignups[key];
-  saveDb(db);
-  return sendText(res, 200, ['OK', 'verified=1', 'signup=1', 'email=' + record.email, 'passwordChanged=0'].join('\n'));
 }
 
 function servesStatic() {
@@ -657,120 +401,6 @@ function serve(initialDb) {
       return;
     }
 
-    if (url.pathname.startsWith('/api/email/')) {
-      applyCors(res);
-      if (req.method === 'OPTIONS') {
-        res.writeHead(204);
-        return res.end();
-      }
-    }
-
-    if (req.method === 'POST' && url.pathname === '/api/email/code') {
-      if (rateLimited(ip)) return sendText(res, 429, 'ERR\nmessage=Слишком много попыток. Подождите минуту.');
-      readParams(req).then(async params => {
-        if (!params.login) {
-          return handleSignupCode(db, params, ip, res).catch(() => sendText(res, 400, 'ERR\nmessage=Некорректный запрос.'));
-        }
-        const user = findUser(db, params.login);
-        if (!user) return sendText(res, 200, 'ERR\nmessage=Аккаунт не найден.');
-        if (user.banned) return sendText(res, 200, 'ERR\nmessage=Аккаунт заблокирован.');
-        const email = normEmail(params.email || user.email);
-        if (!validEmail(email)) return sendText(res, 200, 'ERR\nmessage=Введите корректный e-mail.');
-        const purpose = params.purpose === 'reset' ? 'reset' : 'verify';
-        if (purpose === 'reset' && user.email && normEmail(user.email) !== email) {
-          return sendText(res, 200, 'ERR\\nmessage=Почта не совпадает с привязанной к аккаунту.');
-        }
-        const key = String(user.nick).toLowerCase();
-        const previous = db.emailCodes[key];
-        if (previous && Date.now() - Number(previous.sentAt || 0) < CODE_COOLDOWN) {
-          const retry = Math.max(1, Math.ceil((CODE_COOLDOWN - (Date.now() - Number(previous.sentAt || 0))) / 1000));
-          return sendText(res, 200, ['ERR', 'retry=' + retry, 'message=Код уже отправлен. Повторите через ' + retry + ' с.'].join('\n'));
-        }
-        const code = String(crypto.randomInt(0, 1000000)).padStart(6, '0');
-        const salt = randomHex(8);
-        const expiresAt = Date.now() + CODE_TTL;
-        db.emailCodes[key] = {
-          nick: user.nick,
-          email,
-          purpose,
-          salt,
-          hash: sha256(salt + ':' + code),
-          sentAt: Date.now(),
-          expiresAt,
-          attempts: 0,
-          sends: previous ? Number(previous.sends || 1) + 1 : 1
-        };
-        saveDb(db);
-        const letter = emailLetter(user.nick, code, purpose);
-        try {
-          const result = await mailer.deliver({ to: email, ...letter });
-          if (result.delivery !== 'smtp') console.log('[mail] код для ' + user.nick + ': ' + code + ' (SMTP не настроен, письмо в ' + result.file + ')');
-          return sendText(res, 200, [
-            'OK',
-            'delivery=' + result.delivery,
-            'email=' + email,
-            'expires=' + isoDate(expiresAt),
-            'ttl=' + Math.round(CODE_TTL / 1000),
-            'cooldown=' + Math.round(CODE_COOLDOWN / 1000)
-          ].join('\n'));
-        } catch (error) {
-          delete db.emailCodes[key];
-          saveDb(db);
-          return sendText(res, 200, 'ERR\nmessage=Не удалось отправить письмо: ' + String(error.message || error).replace(/[\r\n]+/g, ' '));
-        }
-      }).catch(() => sendText(res, 400, 'ERR\nmessage=Некорректный запрос.'));
-      return;
-    }
-
-    if (req.method === 'POST' && url.pathname === '/api/email/verify') {
-      readParams(req).then(params => {
-        if (!params.login) {
-          return handleSignupVerify(db, params, res).catch(() => sendText(res, 400, 'ERR\nmessage=Некорректный запрос.'));
-        }
-        const user = findUser(db, params.login);
-        if (!user) return sendText(res, 200, 'ERR\nmessage=Аккаунт не найден.');
-        const key = String(user.nick).toLowerCase();
-        const record = db.emailCodes[key];
-        if (!record) return sendText(res, 200, 'ERR\nmessage=Код не запрашивался или уже использован.');
-        if (Date.now() > Number(record.expiresAt || 0)) {
-          delete db.emailCodes[key];
-          saveDb(db);
-          return sendText(res, 200, 'ERR\nmessage=Код истёк. Запросите новый.');
-        }
-        if (Number(record.attempts || 0) >= CODE_ATTEMPTS) {
-          return sendText(res, 200, 'ERR\nmessage=Слишком много неверных попыток. Запросите новый код.');
-        }
-        if (record.purpose === 'reset' && params.newPassword.length < 6) {
-          return sendText(res, 200, 'ERR\nmessage=Новый пароль — минимум 6 символов.');
-        }
-        const expected = sha256(record.salt + ':' + params.code);
-        if (!safeEqual(expected, record.hash)) {
-          record.attempts = Number(record.attempts || 0) + 1;
-          saveDb(db);
-          const left = Math.max(0, CODE_ATTEMPTS - record.attempts);
-          return sendText(res, 200, ['ERR', 'code=wrong', 'left=' + left, 'message=Неверный код. Осталось попыток: ' + left + '.'].join('\n'));
-        }
-        user.email = record.email;
-        user.emailVerified = true;
-        user.emailVerifiedAt = new Date().toISOString();
-        const passwordChanged = record.purpose === 'reset';
-        if (passwordChanged) {
-          user.salt = randomHex(16);
-          user.hash = hashPassword(params.newPassword, user.salt);
-        }
-        delete db.emailCodes[key];
-        saveDb(db);
-        return sendText(res, 200, [
-          'OK',
-          'verified=1',
-          'email=' + record.email,
-          'purpose=' + record.purpose,
-          'passwordChanged=' + (passwordChanged ? '1' : '0')
-        ].join('\n'));
-      }).catch(() => sendText(res, 400, 'ERR\nmessage=Некорректный запрос.'));
-      return;
-    }
-
     if (servesStatic()) return;
     sendText(res, 404, 'Not found');
   });
@@ -788,7 +418,6 @@ function serve(initialDb) {
     console.log('  Сборка:  ' + (initialDb.build && initialDb.build.file ? initialDb.build.file + ' (' + initialDb.build.size + ' байт)' : 'не загружена'));
     console.log('  Аккаунты: ' + initialDb.users.length);
     console.log('  Публичный адрес: ' + (PUBLIC_URL || 'определяется по Host запроса'));
-    console.log('  Почта:   ' + (mailer.configured() ? 'SMTP ' + mailer.config().host : 'SMTP не настроен (письма в private/outbox)'));
     console.log('\nОстановить: Ctrl+C');
   });
 }

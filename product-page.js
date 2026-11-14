@@ -168,7 +168,6 @@
             '</div>'+
           '</div>'+
           '<div class="np-inputs">'+
-            '<label class="np-input-group"><span class="np-field-label">Email</span><input id="np-email" type="email" placeholder="mail@example.com" autocomplete="email"></label>'+
             '<label class="np-input-group"><span class="np-field-label">Промокод</span>'+
               '<div class="np-promo-field-wrap">'+
                 '<input id="np-promo" type="text" placeholder="Введите промокод…" autocomplete="off" style="text-transform:uppercase">'+
@@ -436,7 +435,6 @@
         '</div>' +
       '</div>' +
       '<div class="np-inputs">' +
-        '<label class="np-input-group"><span class="np-field-label">Email</span><input id="np-email" type="email" placeholder="mail@example.com" autocomplete="email"></label>' +
         '<label class="np-input-group"><span class="np-field-label">Промокод</span>' +
           '<div class="np-promo-field-wrap">' +
             '<input id="np-promo" type="text" placeholder="Введите промокод…" autocomplete="off" style="text-transform:uppercase">' +
