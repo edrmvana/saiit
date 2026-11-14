@@ -758,13 +758,10 @@ function render() {
           ? `<span onclick="copyText('${esc(a.hwid)}', 'HWID скопирован')" style="cursor:pointer;font-family:monospace;font-size:11px;color:#c0a8d4;text-decoration:underline dashed 1px #644682" title="Нажмите, чтобы скопировать HWID">${esc(a.hwid)}</span>`
           : '—';
 
-        const mailLine = a.email
-          ? `<span onclick="copyText('${esc(a.email)}', 'Почта скопирована')" style="display:block;margin-top:3px;font-size:11px;color:${(a.emailVerified || a.verified) ? '#8bb7f0' : '#b08a4a'};cursor:pointer" title="${(a.emailVerified || a.verified) ? 'Почта подтверждена кодом' : 'Почта не подтверждена'}">✉ ${esc(a.email)} ${(a.emailVerified || a.verified) ? '✓' : '·'}</span>`
-          : '';
         return `<tr>
           <td>
             <div class="admin-member">
-              <b onclick="copyText('${esc(a.nick)}', 'Логин скопирован')" style="cursor:pointer" title="Нажмите, чтобы скопировать логин">${esc(a.nick)}</b>${safeMemberBadge(a)}${mailLine}
+              <b onclick="copyText('${esc(a.nick)}', 'Логин скопирован')" style="cursor:pointer" title="Нажмите, чтобы скопировать логин">${esc(a.nick)}</b>${safeMemberBadge(a)}
             </div>
           </td>
           <td>${esc(rubles(a.balance))}</td>

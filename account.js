@@ -76,10 +76,13 @@ function finishHwidPurchase(price){
 function openAvatarPicker(){const m=document.getElementById('avatar-modal');if(!m)return;m.classList.add('show');m.setAttribute('aria-hidden','false');openPanel(m);const input=document.getElementById('avatar-file');if(input){input.value='';input.onchange=()=>{const f=input.files&&input.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{const p=document.getElementById('avatar-preview');if(p)p.innerHTML='<img src="'+r.result+'" alt="Предпросмотр">';};r.readAsDataURL(f);};}const p=document.getElementById('avatar-preview');const a=currentAccount();if(p)p.innerHTML=a&&a.avatar?'<img src="'+a.avatar+'" alt="Предпросмотр">':'◈';}
 function closeAvatarPicker(){const m=document.getElementById('avatar-modal');if(m)closePanel(m,()=>{m.classList.remove('show');m.setAttribute('aria-hidden','true');});}
 function saveAvatarFile(){const input=document.getElementById('avatar-file'),file=input&&input.files&&input.files[0];if(!file)return showNC('Сначала выберите изображение');if(file.size>8*1024*1024)return showNC('Файл слишком большой (максимум 8 МБ)','error');const reader=new FileReader();reader.onload=()=>{const img=new Image();img.onload=()=>{const scale=Math.min(1,512/Math.max(img.width,img.height)),canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(img.width*scale));canvas.height=Math.max(1,Math.round(img.height*scale));canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);const data=canvas.toDataURL('image/jpeg',.86),accounts=getAccounts(),a=accounts.find(x=>x.nick===ncStorage.getItem('nc_session'));if(!a)return;a.avatar=data;saveAccounts(accounts);updateProfile();closeAvatarPicker();showNC('Аватарка обновлена','success');};img.src=reader.result;};reader.readAsDataURL(file);}
-function sendChat(){const a=currentAccount(),i=document.getElementById('chat-input');if(!a||!i||!i.value.trim())return;if(a.blocked)return showNC('Аккаунт заблокирован','error');const c=JSON.parse(ncStorage.getItem('nc_chat')||'[]');c.push({nick:a.nick,text:i.value.trim().slice(0,1000),time:Date.now()});ncStorage.setItem('nc_chat',JSON.stringify(c));i.value='';renderChat();}
+function sendChat(){const a=currentAccount(),i=document.getElementById('chat-input');if(!a||!i||!i.value.trim())return;if(a.blocked)return showNC('Аккаунт заблокирован','error');const c=JSON.parse(ncStorage.getItem('nc_chat')||'[]');c.push({nick:a.nick,text:i.value.trim().slice(0,1000),time:Date.now()});ncStorage.setItem('nc_chat',JSON.stringify(c));i.value='';renderChat();i.focus();}
+let chatRendered='';
 function renderChat(){
  const el=document.getElementById('chat-messages');if(!el)return;
- const messages=JSON.parse(ncStorage.getItem('nc_chat')||'[]');
+ const raw=ncStorage.getItem('nc_chat')||'[]';
+ const messages=JSON.parse(raw);
+ chatRendered=raw;
  const members=new Map(getAccounts().map(a=>[a.nick,a]));
  el.innerHTML=messages.slice(-50).map(m=>{
   const member=members.get(m.nick);
@@ -89,7 +92,12 @@ function renderChat(){
   const timestamp=Number(m.time);const time=Number.isFinite(timestamp)?new Date(timestamp).toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'}):'';
   return `<div class="chat-msg"><div class="chat-msg-header"><b>${escapeHTML(m.nick)}</b>${badge}<time>${escapeHTML(time)}</time></div><span class="chat-message-text">${escapeHTML(m.text)}</span></div>`;
  }).join('')||'<p class="chat-empty">Сообщений пока нет. Это локальный демо-чат.</p>';
+ el.scrollTop=el.scrollHeight;
 }
+// Сообщение должно появляться сразу, без перезагрузки: если запись чата
+// изменилась в другой вкладке или её изменил сотрудник, подхватываем её сами.
+function syncChat(){const raw=ncStorage.getItem('nc_chat')||'[]';if(raw!==chatRendered)renderChat();}
+setInterval(syncChat,1500);
 function sendSupport(){renderSupport();}
 function renderSupport(){renderTickets();}
 function renderTickets(){const e=document.getElementById('cabinet-tickets-list');if(e&&window.NCTickets)window.NCTickets.renderPlayer(e);}
@@ -98,8 +106,6 @@ function setNCMode(mode){
  const title=document.getElementById('nc-title');
  const action=document.getElementById('nc-action');
  const switcher=document.getElementById('nc-switcher');
- const emailField=document.getElementById('nc-email');
- if(emailField){emailField.hidden=mode!=='register';emailField.required=mode==='register';if(mode!=='register')emailField.value='';}
  if(mode==='register'){
   title.textContent='Регистрация'; action.textContent='Зарегистрироваться';
   switcher.innerHTML='Уже есть аккаунт? <button type="button" onclick="setNCMode(\'login\')">Войти</button>';
@@ -111,10 +117,8 @@ function setNCMode(mode){
 function submitNC(){
  const nickInput=document.querySelector('.nc-window input[autocomplete="username"]');
  const passInput=document.querySelector('.nc-window input[type="password"]');
- const emailInput=document.getElementById('nc-email');
  const nick=nickInput?nickInput.value.trim():'';
  const pass=passInput?passInput.value:'';
- const email=emailInput&&!emailInput.hidden?emailInput.value.trim():'';
  if(nick.length>24)return showNC('Никнейм — не больше 24 символов','error');
  if(ncMode==='register'&&pass.length<6)return showNC('Пароль — минимум 6 символов','error');
  if(!nick || !pass){showNC('Заполни все поля');return;}
@@ -122,21 +126,9 @@ function submitNC(){
  if(ncMode==='register'){
   if(saved){showNC('Этот логин уже зарегистрирован');return;} 
   if(accounts.length>=3){showNC('Можно зарегистрировать максимум 3 аккаунта');return;}
-  const createAccount=confirmedEmail=>{
-   const fresh=getAccounts();
-   if(fresh.some(a=>a.nick===nick)){showNC('Этот логин уже зарегистрирован','error');return;}
-   if(fresh.length>=3){showNC('Можно зарегистрировать максимум 3 аккаунта','error');return;}
-   fresh.push({nick,pass,email:confirmedEmail||'',verified:true,emailVerified:true,createdAt:new Date().toISOString(),balance:0,subscription:null,hwid:'',blocked:false});
-   saveAccounts(fresh);
-   ncStorage.setItem('nc_session',nick); closeAccount(()=>resumeCabinetTarget()); updateProfile();
-   showNC('Аккаунт создан, почта подтверждена','success');
-  };
-  if(window.NCMail){
-   if(!NCMail.isEmail(email)){showNC('Введите e-mail — на него придёт код подтверждения','error');return;}
-   NCMail.start({purpose:'register',nick,email,onVerified:payload=>createAccount(payload&&payload.email||email)});
-   return;
-  }
-  createAccount('');
+  accounts.push({nick,pass,email:'',verified:true,createdAt:new Date().toISOString(),balance:0,subscription:null,hwid:'',blocked:false});
+  saveAccounts(accounts);
+  ncStorage.setItem('nc_session',nick); closeAccount(()=>resumeCabinetTarget()); updateProfile(); showNC('Демо-аккаунт создан. Добро пожаловать!','success');
   return;
  }else{
   if(!saved){showNC('Сначала зарегистрируй аккаунт');return;}
@@ -159,34 +151,6 @@ function showNC(text,type){
 }
 function closeAccount(after){const m=document.getElementById('nc-modal');return closePanel(m,()=>{m.classList.remove('show');m.style.display='none';if(typeof after==='function')after();});}
 function logoutNC(){ncStorage.removeItem('nc_session'); updateProfile(); showNC('Вы вышли из аккаунта');}
-function openPasswordReset(){
- const nickInput=document.querySelector('.nc-window input[autocomplete="username"]');
- const nick=(nickInput&&nickInput.value.trim())||ncStorage.getItem('nc_session')||'';
- if(!nick)return showNC('Сначала введите ник аккаунта','error');
- const account=getAccounts().find(a=>a.nick===nick);
- if(!account)return showNC('Такого аккаунта нет','error');
- if(!window.NCMail)return showNC('Сброс пароля недоступен','error');
- NCMail.start({purpose:'reset',nick,email:account.email||'',onVerified(payload){
-  const list=getAccounts(); const fresh=list.find(a=>a.nick===payload.nick);
-  if(!fresh)return;
-  if(payload.passwordChanged&&payload.newPassword)fresh.pass=payload.newPassword;
-  if(payload.email){fresh.email=payload.email;fresh.verified=true;fresh.emailVerified=true;}
-  saveAccounts(list); updateProfile();
-  showNC(payload.passwordChanged?'Пароль обновлён — войдите с новым паролем':'Почта подтверждена','success');
- }});
-}
-function openEmailSettings(){
- const session=ncStorage.getItem('nc_session');
- if(!session)return showNC('Сначала войдите в аккаунт','error');
- const account=getAccounts().find(a=>a.nick===session);
- if(!account)return showNC('Аккаунт не найден','error');
- if(!window.NCMail)return showNC('Почта недоступна','error');
- NCMail.start({purpose:'attach',nick:session,email:account.email||'',onVerified(payload){
-  const list=getAccounts(); const fresh=list.find(a=>a.nick===payload.nick);
-  if(fresh){fresh.email=payload.email;fresh.verified=true;fresh.emailVerified=true;saveAccounts(list);}
-  updateProfile(); showNC('Почта '+payload.email+' подтверждена','success');
- }});
-}
 function updateProfile(){
  const session=ncStorage.getItem('nc_session');
  const label=document.querySelector('.profile b');
@@ -208,7 +172,7 @@ function updateProfile(){
  const loader=document.getElementById('loader-download'); if(loader){const caption=loader.querySelector('button');if(caption)caption.textContent='Скачать лоадер';loader.setAttribute('aria-label','Скачать лоадер');loader.style.opacity=serverEnabled()?'1':'.45';loader.title=serverEnabled()?'Скачать лоадер':'Сервер отключён';}
  const sub=document.getElementById('cabinet-subscription');
  const hw=document.getElementById('cabinet-hwid'); if(hw) hw.textContent=account&&account.hwid||'Не привязан';
- const mailLine=document.getElementById('cabinet-email'); if(mailLine) mailLine.textContent=account&&account.email?account.email+((account.emailVerified||account.verified)?' ✓':''):'Не привязана';
+
  const days=document.getElementById('cabinet-days'); if(days){const d=(account&&window.NCStore&&NCStore.isSubActive(account))?Math.max(0,Math.ceil((NCStore.subscription(account).until-Date.now())/86400000)):0; days.textContent=d+' дн.'; if(sub) sub.textContent=d>0?'RustEx · '+d+' дней':'Нет подписки';}
  const until=document.getElementById('cabinet-until'); if(until){const subInfo=account&&window.NCStore?NCStore.subscription(account):null;until.textContent=subInfo&&subInfo.until?new Date(subInfo.until).toLocaleDateString('ru-RU'):'—';}
  if(cabinetDate) cabinetDate.textContent=account&&account.createdAt?new Date(account.createdAt).toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}):'—';
