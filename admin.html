@@ -618,7 +618,7 @@ function exportPlayersCSV() {
     return [
       `"${String(a.nick || '').replace(/"/g, '""')}"`,
       Number(a.balance) || 0,
-      `"${hasSub ? String(a.subscription.name || 'Активна').replace(/"/g, '""') : 'Нет'}"`,
+      `"${hasSub ? String(subInfo.name || 'Активна').replace(/"/g, '""') : 'Нет'}"`,
       daysLeft,
       `"${untilDate}"`,
       `"${String(a.hwid || '—').replace(/"/g, '""')}"`,
@@ -1139,17 +1139,30 @@ function removeSub(n) {
     notify('У игрока ' + n + ' нет активной подписки.', 'info');
     return;
   }
+  // Подписка может лежать в lastSubscription или в старом строковом виде,
+  // поэтому берём нормализованные данные, а не a.subscription.name.
+  const info = (typeof ncSub === 'function' ? ncSub(a) : null) || {};
   openAdminAction({
     title: 'Снять подписку',
-    description: 'Игрок: ' + n + ' · ' + (a.subscription.name || 'Активная подписка'),
+    description: 'Игрок: ' + n + ' · ' + (info.name || ('Активна ещё ' + (Number(info.days) || 0) + ' дн.')),
     symbol: '✕',
     submitLabel: 'Аннулировать подписку',
     html: '<p style="color:#ff9eaf;font-size:12px;line-height:1.6;margin:0 0 12px">Внимание: текущая подписка игрока <b>' + esc(n) + '</b> будет аннулирована. Доступ к лаунчеру будет закрыт.</p>',
     onSubmit: () => {
       const currentList = accounts(), target = currentList.find(x => x.nick === n);
       if (!target) return false;
-      target.lastSubscription = target.subscription ? { ...target.subscription } : null;
+      const targetInfo = (typeof ncSub === 'function' ? ncSub(target) : null) || {};
       target.subscription = null;
+      target.sub = null;
+      // Оставляем историю (название и дни), но без срока действия,
+      // иначе подписка снова считается активной.
+      target.lastSubscription = {
+        name: targetInfo.name || 'RustexOrg',
+        days: Number(targetInfo.days) || 0,
+        until: null,
+        updatedAt: Date.now(),
+        revokedAt: Date.now()
+      };
       save(currentList);
       logAdminAction('Снятие подписки', `Игрок: ${n} (подписка аннулирована)`);
       notify('Подписка игрока ' + n + ' успешно аннулирована.', 'success', 'Подписка снята');
